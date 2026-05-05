@@ -5,6 +5,8 @@ public class Cell : MonoBehaviour, IClickable
 {
     [SerializeField] private Car _currentCar;
     [SerializeField] private bool _isObstacle;
+    [SerializeField] private float _carYOffset = 3f;
+
     public Vector2Int GridPosition { get; private set; }
     public bool IsReserved { get; private set; }
     public bool IsBlocked => HasCar || IsReserved || _isObstacle;
@@ -20,7 +22,7 @@ public class Cell : MonoBehaviour, IClickable
         if (car == null || HasCar) return false;
 
         _currentCar = car;
-        car.transform.position = transform.position + Vector3.up * 0.5f;
+        car.transform.position = transform.position + Vector3.down * _carYOffset;
         car.transform.SetParent(transform);
         return true;
     }

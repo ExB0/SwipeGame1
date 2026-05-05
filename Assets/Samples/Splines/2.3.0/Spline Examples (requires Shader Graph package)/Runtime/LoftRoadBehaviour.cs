@@ -20,6 +20,8 @@ namespace Unity.Splines.Examples
         [SerializeField]
         List<SplineData<float>> m_Widths = new List<SplineData<float>>();
 
+        [SerializeField] float m_RoadHeight = 0.5f;
+
         public List<SplineData<float>> Widths
         {
             get
@@ -87,7 +89,12 @@ namespace Unity.Splines.Examples
                     return m_Mesh;
 
                 m_Mesh = new Mesh();
-                GetComponent<MeshRenderer>().sharedMaterial = Resources.Load<Material>("Road");
+                var renderer = GetComponent<MeshRenderer>();
+
+                if (renderer.sharedMaterial == null)
+                {
+                    renderer.sharedMaterial = Resources.Load<Material>("Road");
+                }
                 return m_Mesh;
             }
         }

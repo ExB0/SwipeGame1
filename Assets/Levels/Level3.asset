@@ -115,3 +115,4 @@ MonoBehaviour:
       Color: 2
     - UnitType: 1
       Color: 1
+  ScoreReward: 30

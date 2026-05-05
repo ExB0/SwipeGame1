@@ -1,0 +1,3 @@
+﻿Build path: /Users/admin/Downloads/SwiPeGame/Yandex20
+Build number: 14
+PluginYG version: 2.0091

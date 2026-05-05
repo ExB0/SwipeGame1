@@ -101,3 +101,4 @@ MonoBehaviour:
       Color: 1
     - UnitType: 1
       Color: 0
+  ScoreReward: 40

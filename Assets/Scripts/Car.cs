@@ -47,7 +47,8 @@ public class Car : MonoBehaviour, IColorMatchable
 
     public void OnClick()
     {
-        StopAllCoroutines();
+        if (_scaleShakeEffect.IsShaking) return;
+
         if (_roadManager.IsRoadFull())
         {
             _scaleShakeEffect.Shake();
@@ -178,7 +179,7 @@ public class Car : MonoBehaviour, IColorMatchable
         }
        _gridManager.RemoveCar(this);
         Vector3 exitPosition = transform.position;
-        await MoveToPosition(exitPosition + Vector3.forward * 5f);
+        await MoveToPosition(exitPosition + Vector3.forward * 3f);
 
         await MoveToPosition(_roadPoint.position);
         await PlaySplineAnimator();
@@ -206,9 +207,6 @@ public class Car : MonoBehaviour, IColorMatchable
             CheckAfterCircle();
         }
     }
-
-
-
 
     private Cell GetCurrentCell()
     {
@@ -268,7 +266,7 @@ public class Car : MonoBehaviour, IColorMatchable
         }
     }
 
-    private async UniTask LeaveLeft()
+    private async UniTask LeaveSpline()
     {
         var token = this.GetCancellationTokenOnDestroy();
 
@@ -278,7 +276,7 @@ public class Car : MonoBehaviour, IColorMatchable
 
         Vector3 targetPosition = transform.position + transform.forward * _leaveDistance;
 
-        while (Vector3.Distance(transform.position, targetPosition) > 0.1f)
+        while (Vector3.Distance(transform.position, targetPosition) > 0.5f)
         {
             token.ThrowIfCancellationRequested();
 
@@ -305,7 +303,7 @@ public class Car : MonoBehaviour, IColorMatchable
         {
             _roadManager.RemoveCar();
             _leaving = true;
-            LeaveLeft().Forget();
+            LeaveSpline().Forget();
         }
         else
         {

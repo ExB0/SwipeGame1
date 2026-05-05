@@ -11,13 +11,25 @@ public class Person : MonoBehaviour, IColorMatchable, IJumpable, IQueueable
     
     [SerializeField] private Color _color;
 
+    [SerializeField] private Animator _animator;
+    [SerializeField] private float _animatorSpeed;
+
     public bool IsJumped { get; private set; }
     public Color GetColor() => _color;
 
     private CancellationTokenSource _cancellationTokenSource;
+    private static readonly int IsWalking = Animator.StringToHash("IsWalking");
 
     private void Awake()
     {
+        _animator = GetComponentInChildren<Animator>();
+
+        if (_animator == null)
+             Debug.LogError($"{name}: Animator не найден!");
+
+        _animator.speed = _animatorSpeed;
+
+
         _color = GetComponent<MeshRenderer>().material.color;
 
         _cancellationTokenSource = new CancellationTokenSource();
@@ -73,19 +85,38 @@ public class Person : MonoBehaviour, IColorMatchable, IJumpable, IQueueable
             return;
         }
 
-        if (target == transform.position)   return;
+        if (target == transform.position) return;
 
         var token = _cancellationTokenSource.Token;
 
-        while (Vector3.Distance(transform.position, target) > 0.01f)
+        _animator.SetBool(IsWalking, true);
+
+        try
         {
-            if (this == null || gameObject == null || token.IsCancellationRequested) return;
+            while (Vector3.Distance(transform.position, target) > 0.01f)
+            {
+                if (this == null || gameObject == null || token.IsCancellationRequested)
+                    return;
 
-            transform.position = Vector3.MoveTowards(transform.position, target, speed * Time.deltaTime);
-            await UniTask.Yield(PlayerLoopTiming.Update, token);
+                Vector3 direction = (target - transform.position).normalized;
+                transform.forward = direction;
+
+                transform.position = Vector3.MoveTowards(
+                    transform.position,
+                    target,
+                    speed * Time.deltaTime
+                );
+
+                await UniTask.Yield(PlayerLoopTiming.Update, token);
+            }
+
+            transform.position = target;
         }
-
-        transform.position = target;
+        finally
+        {
+            if (_animator != null)
+                _animator.SetBool(IsWalking, false);
+        }
     }
 
     private void OnDestroy()

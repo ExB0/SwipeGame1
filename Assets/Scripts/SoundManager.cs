@@ -1,22 +1,53 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 public class SoundManager : MonoBehaviour
 {
+    public static SoundManager Instance;
+
     [SerializeField] private AudioSource _music;
+
+    public event Action<float> OnVolumeChanged;
+    public event Action<bool> OnMuteChanged;
+
+    private void Awake()
+    {
+        Instance = this;
+
+        if (_music == null)
+            _music = GetComponent<AudioSource>();
+    }
+
+    private void Start()
+    {
+        float volume = PlayerPrefs.GetFloat("MusicVolume", 1f);
+        bool enabled = PlayerPrefs.GetInt("MusicEnabled", 1) == 1;
+
+        ApplyVolume(volume);
+        ApplyMute(enabled);
+    }
+
+    public void SetVolume(float value)
+    {
+        ApplyVolume(value);
+        PlayerPrefs.SetFloat("MusicVolume", value);
+    }
 
     public void SetMusicEnabled(bool value)
     {
-        if (_music == null) return;
-
-        _music.enabled = value;
+        ApplyMute(value);
+        PlayerPrefs.SetInt("MusicEnabled", value ? 1 : 0);
     }
 
-    public void SetVolume(float volume)
+    private void ApplyVolume(float value)
     {
-        if (_music == null) return;
+        _music.volume = value;
+        OnVolumeChanged?.Invoke(value);
+    }
 
-        AudioListener.volume = volume;
+    private void ApplyMute(bool value)
+    {
+        _music.mute = !value;
+        OnMuteChanged?.Invoke(value);
     }
 }

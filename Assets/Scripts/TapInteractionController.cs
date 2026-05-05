@@ -22,14 +22,13 @@ public class TapInteractionController : MonoBehaviour
                     }
                 }
             }
-#if UNITY_EDITOR
-        // Для тестов в редакторе мышкой
+
         if (Input.GetMouseButtonDown(0))
         {
             Ray ray = cam.ScreenPointToRay(Input.mousePosition);
             if (Physics.Raycast(ray, out RaycastHit hit))
             {
-                Debug.Log("popal");
+                Debug.Log("ПОПАЛ В: " + hit.collider.name);
                 var clickable = hit.collider.GetComponent<IClickable>();
                 if (clickable != null)
                 {
@@ -38,7 +37,6 @@ public class TapInteractionController : MonoBehaviour
                 }
             }
         }
-#endif
     }
 
 }

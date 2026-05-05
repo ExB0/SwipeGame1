@@ -115,6 +115,8 @@ MonoBehaviour:
   _jumpHeight: 5
   _jumpDuration: 0.1
   _color: {r: 1, g: 0, b: 0, a: 0}
+  _animator: {fileID: 6659838398957518133}
+  _animatorSpeed: 3
 --- !u!1001 &938694948077617316
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -239,6 +241,10 @@ PrefabInstance:
       propertyPath: m_Materials.Array.data[0]
       value: 
       objectReference: {fileID: 2100000, guid: 19a6ac7a4c89247c99c40a7f14ac8e07, type: 2}
+    - target: {fileID: 5866666021909216657, guid: 7a93934a08eb9400eb2a7dbf756cf860, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 62c85b48e50d547398dd447ff478e767, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -247,5 +253,10 @@ PrefabInstance:
 --- !u!4 &760074149873035087 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 7a93934a08eb9400eb2a7dbf756cf860, type: 3}
+  m_PrefabInstance: {fileID: 938694948077617316}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &6659838398957518133 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 7a93934a08eb9400eb2a7dbf756cf860, type: 3}
   m_PrefabInstance: {fileID: 938694948077617316}
   m_PrefabAsset: {fileID: 0}

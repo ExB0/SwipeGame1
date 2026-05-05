@@ -77,7 +77,7 @@ PlayerSettings:
   androidFullscreenMode: 1
   defaultIsNativeResolution: 1
   macRetinaSupport: 1
-  runInBackground: 1
+  runInBackground: 0
   captureSingleScreen: 0
   muteOtherAudioSources: 0
   Prepare IOS For Recording: 0
@@ -844,14 +844,14 @@ PlayerSettings:
   blurSplashScreenBackground: 1
   spritePackerPolicy: 
   webGLMemorySize: 16
-  webGLExceptionSupport: 1
+  webGLExceptionSupport: 2
   webGLNameFilesAsHashes: 1
   webGLShowDiagnostics: 0
   webGLDataCaching: 0
   webGLDebugSymbols: 0
   webGLEmscriptenArgs: 
   webGLModulesDirectory: 
-  webGLTemplate: APPLICATION:Default
+  webGLTemplate: PROJECT:YandexGames
   webGLAnalyzeBuildSize: 0
   webGLUseEmbeddedResources: 0
   webGLCompressionFormat: 0
@@ -866,7 +866,18 @@ PlayerSettings:
   webGLMemoryGeometricGrowthStep: 0.2
   webGLMemoryGeometricGrowthCap: 96
   webGLPowerPreference: 2
-  scriptingDefineSymbols: {}
+  scriptingDefineSymbols:
+    Android: YandexGamesPlatform_yg;PLUGIN_YG_2;TMP_YG2;RewardedAdv_yg;EnvirData_yg;Storage_yg;Leaderboards_yg;Localization_yg;StickyAdv_yg;Authorization_yg;InterstitialAdv_yg
+    LinuxHeadlessSimulation: YandexGamesPlatform_yg;PLUGIN_YG_2;TMP_YG2;RewardedAdv_yg;EnvirData_yg;Storage_yg;Leaderboards_yg;Localization_yg;StickyAdv_yg;Authorization_yg;InterstitialAdv_yg
+    Nintendo Switch: YandexGamesPlatform_yg;PLUGIN_YG_2;TMP_YG2;RewardedAdv_yg;EnvirData_yg;Storage_yg;Leaderboards_yg;Localization_yg;StickyAdv_yg;Authorization_yg;InterstitialAdv_yg
+    PS4: YandexGamesPlatform_yg;PLUGIN_YG_2;TMP_YG2;RewardedAdv_yg;EnvirData_yg;Storage_yg;Leaderboards_yg;Localization_yg;StickyAdv_yg;Authorization_yg;InterstitialAdv_yg
+    PS5: YandexGamesPlatform_yg;PLUGIN_YG_2;TMP_YG2;RewardedAdv_yg;EnvirData_yg;Storage_yg;Leaderboards_yg;Localization_yg;StickyAdv_yg;Authorization_yg;InterstitialAdv_yg
+    Standalone: YandexGamesPlatform_yg;PLUGIN_YG_2;TMP_YG2;RewardedAdv_yg;EnvirData_yg;Storage_yg;Leaderboards_yg;Localization_yg;StickyAdv_yg;Authorization_yg;InterstitialAdv_yg
+    WebGL: YandexGamesPlatform_yg;PLUGIN_YG_2;TMP_YG2;RewardedAdv_yg;EnvirData_yg;Storage_yg;Leaderboards_yg;Localization_yg;StickyAdv_yg;Authorization_yg;InterstitialAdv_yg
+    Windows Store Apps: YandexGamesPlatform_yg;PLUGIN_YG_2;TMP_YG2;RewardedAdv_yg;EnvirData_yg;Storage_yg;Leaderboards_yg;Localization_yg;StickyAdv_yg;Authorization_yg;InterstitialAdv_yg
+    XboxOne: YandexGamesPlatform_yg;PLUGIN_YG_2;TMP_YG2;RewardedAdv_yg;EnvirData_yg;Storage_yg;Leaderboards_yg;Localization_yg;StickyAdv_yg;Authorization_yg;InterstitialAdv_yg
+    iPhone: YandexGamesPlatform_yg;PLUGIN_YG_2;TMP_YG2;RewardedAdv_yg;EnvirData_yg;Storage_yg;Leaderboards_yg;Localization_yg;StickyAdv_yg;Authorization_yg;InterstitialAdv_yg
+    tvOS: YandexGamesPlatform_yg;PLUGIN_YG_2;TMP_YG2;RewardedAdv_yg;EnvirData_yg;Storage_yg;Leaderboards_yg;Localization_yg;StickyAdv_yg;Authorization_yg;InterstitialAdv_yg
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend: {}
@@ -881,8 +892,9 @@ PlayerSettings:
     PS5: 1
     QNX: 1
     Stadia: 1
+    Standalone: 4
     VisionOS: 1
-    WebGL: 1
+    WebGL: 4
     Windows Store Apps: 1
     XboxOne: 1
     iPhone: 1

@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class ScaleShakeEffect : MonoBehaviour
 {
+    public bool IsShaking { get; private set; }
+
     [SerializeField] private float _scaleMultiplier = 1.2f; 
     [SerializeField] private float _duration = 0.3f;        
     [SerializeField] private float _shakeAmount = 0.05f;    
@@ -15,16 +17,20 @@ public class ScaleShakeEffect : MonoBehaviour
     {
         _originalScale = transform.localScale;
         _originalPosition = transform.localPosition;
+        IsShaking = false;
     }
 
     public void Shake()
     {
+        if (IsShaking) return;
+
         StopAllCoroutines();
         StartCoroutine(ShakeEffect());
     }
 
     private IEnumerator ShakeEffect()
     {
+        IsShaking = true;
         float time = 0f;
         Vector3 targetScale = _originalScale * _scaleMultiplier;
 
@@ -58,5 +64,7 @@ public class ScaleShakeEffect : MonoBehaviour
 
         transform.localScale = _originalScale;
         transform.localPosition = _originalPosition;
+
+        IsShaking = false;
     }
 }
