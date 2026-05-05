@@ -29,7 +29,7 @@ MonoBehaviour:
     enable: 1
     saveScoreAnonymousPlayers: 1
     listLBSim:
-    - technoName: LeaderBoardYG2
+    - technoName: test
       entries: '1. Max: 10
 
         2. Masha: 15
@@ -110,66 +110,6 @@ MonoBehaviour:
         score: 20
         photo: demo image
         uniqueID: 329
-        extraData: 
-      - rank: 10
-        name: Player 10
-        score: 10
-        photo: demo image
-        uniqueID: 330
-        extraData: 
-      - rank: 10
-        name: Player 10
-        score: 10
-        photo: demo image
-        uniqueID: 330
-        extraData: 
-      - rank: 10
-        name: Player 10
-        score: 10
-        photo: demo image
-        uniqueID: 330
-        extraData: 
-      - rank: 10
-        name: Player 10
-        score: 10
-        photo: demo image
-        uniqueID: 330
-        extraData: 
-      - rank: 10
-        name: Player 10
-        score: 10
-        photo: demo image
-        uniqueID: 330
-        extraData: 
-      - rank: 10
-        name: Player 10
-        score: 10
-        photo: demo image
-        uniqueID: 330
-        extraData: 
-      - rank: 10
-        name: Player 10
-        score: 10
-        photo: demo image
-        uniqueID: 330
-        extraData: 
-      - rank: 10
-        name: Player 10
-        score: 10
-        photo: demo image
-        uniqueID: 330
-        extraData: 
-      - rank: 10
-        name: Player 10
-        score: 10
-        photo: demo image
-        uniqueID: 330
-        extraData: 
-      - rank: 10
-        name: Player 10
-        score: 10
-        photo: demo image
-        uniqueID: 330
         extraData: 
       - rank: 10
         name: Player 10
