@@ -9,6 +9,7 @@ public static AdsManager Instance;
 
     [SerializeField] private int _actionCounter = 0;
     [SerializeField] private float _lastAdTime = -999f;
+    private bool _isAdShowing;
 
     private const int ACTION_THRESHOLD = 3;
     private const float COOLDOWN = 30f;
@@ -17,6 +18,12 @@ public static AdsManager Instance;
 
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+
         Instance = this;
     }
 
@@ -27,6 +34,9 @@ public static AdsManager Instance;
 
     public bool TryShowAd(System.Action onClosed = null)
     {
+        if (_isAdShowing)
+            return true;
+
         if (_actionCounter < ACTION_THRESHOLD)
             return false;
 
@@ -34,18 +44,19 @@ public static AdsManager Instance;
             return false;
 
         _onAdClosed = onClosed;
-
         ShowAd();
         return true;
     }
 
     private void ShowAd()
     {
+        _isAdShowing = true;
         _actionCounter = 0;
         _lastAdTime = Time.time;
 
         PauseGameYG.SetState(0, true, true);
 
+        YG2.onCloseInterAdv -= OnAdClosed;
         YG2.onCloseInterAdv += OnAdClosed;
 
         YG2.InterstitialAdvShow();
@@ -53,10 +64,15 @@ public static AdsManager Instance;
 
     private void OnAdClosed()
     {
+        _isAdShowing = false;
+
         PauseGameYG.SetState(1, false, false);
 
         YG2.onCloseInterAdv -= OnAdClosed;
 
-        _onAdClosed?.Invoke();
+        var callback = _onAdClosed;
+        _onAdClosed = null;
+
+        callback?.Invoke();
     }
 }

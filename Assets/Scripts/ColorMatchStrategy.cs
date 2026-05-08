@@ -15,11 +15,9 @@ public class ColorMatchStrategy : ITakeStrategy
         {
             if (!ctx.Car.TryGetSeat(out var seatTransform))
             {
-                Debug.Log("Нет свободных мест в машине.");
                 return false;
             }
 
-            Debug.Log("Цвет совпал. Прыгаю в машину!");
             ctx.PersonJump.JumpTo(seatTransform.position, seatTransform);
             return true;
         }

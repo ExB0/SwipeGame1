@@ -20,8 +20,6 @@ namespace Unity.Splines.Examples
         [SerializeField]
         List<SplineData<float>> m_Widths = new List<SplineData<float>>();
 
-        [SerializeField] float m_RoadHeight = 0.5f;
-
         public List<SplineData<float>> Widths
         {
             get

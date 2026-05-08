@@ -70,7 +70,6 @@ public class Person : MonoBehaviour, IColorMatchable, IJumpable, IQueueable
 
             await UniTask.Yield();
             time += Time.deltaTime;
-            Debug.Log("JUMP TO CALLED}");
         }
 
         transform.position = target;

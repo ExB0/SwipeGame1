@@ -161,12 +161,10 @@ private bool IsWalkable(Vector2Int gridPosition, GridManager gridManager)
 
     if (gridPosition == _startPosition)
     {
-        Debug.Log($"Start position {gridPosition} is always walkable");
         return true;
     }
 
     bool walkable = !cell.IsBlocked;
-    Debug.Log($"IsWalkable check at {gridPosition}: {walkable}");
     return walkable;
 }
 }

@@ -83,13 +83,7 @@ public class GridManager : MonoBehaviour
     }
     public void BuildObstacles()
     {
-
-        foreach (var obj in _spawnedObstacles)
-        {
-            if (obj != null)
-                Destroy(obj);
-        }
-        _spawnedObstacles.Clear();
+        ClearObstacles();
 
         foreach (var cell in GetAllCells())
         {
@@ -143,6 +137,8 @@ public class GridManager : MonoBehaviour
         
         _carsToDestroy.Clear();
         _activeCars.Clear();
+
+        ClearObstacles();
         
 
         foreach (var cell in _cells)
@@ -164,7 +160,22 @@ public class GridManager : MonoBehaviour
         }
         _activeCars.Remove(car);
     }
-    
+    private void ClearObstacles()
+    {
+        foreach (var obstacle in _spawnedObstacles)
+        {
+            if (obstacle != null)
+                Destroy(obstacle);
+        }
+
+        _spawnedObstacles.Clear();
+
+        foreach (var cell in _cells)
+        {
+            if (cell != null)
+                cell.SetObstacle(false);
+        }
+    }
     public bool HasActiveCars()
     {
         _activeCars.RemoveAll(c => c == null);
