@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using System.Threading;
 
 public class UnitQueue : MonoBehaviour
 {
@@ -11,42 +12,70 @@ public class UnitQueue : MonoBehaviour
 
     public int Count => _queue.Count;
     public int Capacity => _queuePositions.Length;
-
-    public async UniTask Enqueue(GameObject obj)
+    private void Awake()
     {
+        if (_queuePositions == null || _queuePositions.Length == 0)
+            Debug.LogError($"{name}: queue positions are empty");
+    }
+
+
+    public async UniTask Enqueue(GameObject obj, CancellationToken token)
+    {
+        if (_queue.Count >= _queuePositions.Length)
+        {
+            Debug.LogWarning($"{name}: Queue is full");
+            Destroy(obj);
+            return;
+        }
+
         obj.SetActive(true);
 
         var queueable = obj.GetComponent<IQueueable>();
         if (queueable == null)
         {
             Debug.LogError("Объект не реализует IQueueable");
-            obj.SetActive(false);
+            Destroy(obj);
             return;
         }
 
         _queue.Enqueue(queueable);
+
         int targetIndex = _queue.Count - 1;
-        await queueable.MoveToPosition(_queuePositions[targetIndex].position, _moveSpeed);
+
+        await queueable.MoveToPosition(
+            _queuePositions[targetIndex].position,
+            _moveSpeed,
+            token
+        );
     }
 
-    public async UniTask Dequeue()
+    public async UniTask Dequeue(CancellationToken token)
     {
         if (_queue.Count == 0) return;
 
-        var unit = _queue.Dequeue();
-        var go = (unit as MonoBehaviour)?.gameObject;
+        _queue.Dequeue();
 
         int i = 0;
         var tasks = new List<UniTask>();
+
         foreach (var q in _queue)
         {
-            if (q != null && (q as MonoBehaviour) != null)
-                tasks.Add(q.MoveToPosition(_queuePositions[i].position, _moveSpeed));
+            token.ThrowIfCancellationRequested();
+
+            if (i >= _queuePositions.Length)
+                break;
+
+            var mb = q as MonoBehaviour;
+
+            if (q != null && mb != null && mb.gameObject.activeInHierarchy)
+                tasks.Add(q.MoveToPosition(_queuePositions[i].position, _moveSpeed, token));
+
             i++;
         }
 
         await UniTask.WhenAll(tasks);
     }
+
 
     public IQueueable Peek()
     {
@@ -63,5 +92,15 @@ public class UnitQueue : MonoBehaviour
 
         _queue.Clear();
     }
+    public void ClearAndDestroy()
+    {
+        foreach (var unit in _queue)
+        {
+            var go = (unit as MonoBehaviour)?.gameObject;
+            if (go != null)
+                Destroy(go);
+        }
 
+        _queue.Clear();
+    }
 }

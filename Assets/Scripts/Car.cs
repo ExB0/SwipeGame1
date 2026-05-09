@@ -2,6 +2,8 @@ using UnityEngine;
 using Cysharp.Threading.Tasks;
 using UnityEngine.Splines;
 using System.Collections.Generic;
+using System.Threading;
+
 
 [RequireComponent(typeof(Rigidbody))]
 public class Car : MonoBehaviour, IColorMatchable
@@ -27,38 +29,76 @@ public class Car : MonoBehaviour, IColorMatchable
     private GridManager _gridManager;
     private RoadManager _roadManager;
     private bool _leaving = false;
+    private CancellationToken _levelToken;
 
     private void Awake()
     {
         _rigidbody = GetComponent<Rigidbody>();
         _pathFinder = new PathFinder();
         _splineAnimator = GetComponent<SplineAnimate>();
-        _color = GetComponent<MeshRenderer>().material.color;
         _scaleShakeEffect = GetComponent<ScaleShakeEffect>();
+
+        var renderer = GetComponent<MeshRenderer>();
+        if (renderer != null)
+            _color = renderer.material.color;
+        else
+            Debug.LogError($"{name}: MeshRenderer not found");
+
+        if (_splineAnimator == null)
+            Debug.LogError($"{name}: SplineAnimate not found");
+
+        if (_scaleShakeEffect == null)
+            Debug.LogError($"{name}: ScaleShakeEffect not found");
+
+        if (_smoke == null)
+            Debug.LogWarning($"{name}: smoke particle is missing");
+
+        if (_passengers == null)
+            Debug.LogWarning($"{name}: passengers array is null");
     }
+
 
     private void Start()
     {
         _gridManager = GridManager.Instance;
         _roadManager = FindAnyObjectByType<RoadManager>();
         _levelConstructor = LevelConstructor.Instance;
-        _smoke.Stop();
+
+        if (_gridManager == null)
+            Debug.LogError($"{name}: GridManager not found");
+
+        if (_roadManager == null)
+            Debug.LogError($"{name}: RoadManager not found");
+
+        if (_levelConstructor != null)
+            _levelToken = _levelConstructor.LevelToken;
+
+        if (_smoke != null)
+            _smoke.Stop();
     }
+
+
 
     public void OnClick()
     {
-        if (_scaleShakeEffect.IsShaking) return;
+        if (_gridManager == null || _roadManager == null)
+            return;
+
+        if (_scaleShakeEffect != null && _scaleShakeEffect.IsShaking)
+            return;
+
+        if (_isMoving)
+            return;
 
         if (_roadManager.IsRoadFull())
         {
-            _scaleShakeEffect.Shake();
+            _scaleShakeEffect?.Shake();
             return;
-        } 
+        }
 
-        if (_isMoving) return;
-        
         UniTask.Void(async () => await HandleClick());
     }
+
 
     private async UniTask HandleClick()
     {

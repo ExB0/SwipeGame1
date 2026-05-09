@@ -1,6 +1,7 @@
 using UnityEngine;
 using Cysharp.Threading.Tasks;
 using YG;
+using System.Threading;
 
 public class LevelConstructor : MonoBehaviour
 {
@@ -19,12 +20,19 @@ public class LevelConstructor : MonoBehaviour
     [SerializeField] private GameObject _mainMenuWindow;
     [SerializeField] private LeaderboardYG _leaderboardYG;
     [SerializeField] private StartTextController _startTextController;
+    [SerializeField] private LevelTimer _levelTimer;
+    [SerializeField] private GameObject _loseWindow;
+    [SerializeField] private AdsManager _adsManager;
     private bool _isMenuPressed = false;
+    private bool _isLoseTriggered;
 
     private int _currentLevelIndex = 0;
     private bool _isWinTriggered = false;
+    private CancellationTokenSource _levelCts;
 
-    private AdsManager _adsManager;
+
+    public CancellationToken LevelToken => _levelCts?.Token ?? CancellationToken.None;
+
 
 
     private void Awake()
@@ -40,12 +48,16 @@ public class LevelConstructor : MonoBehaviour
         _levelsWindow.SetActive(false);
         _menuButtonWindow.SetActive(false);
         _reloadbuttonWindow.SetActive(false);
+        _loseWindow.SetActive(false);
     }
-    
+
     private void Start()
     {
         _adsManager = AdsManager.Instance;
+        if (_levelTimer != null)
+            _levelTimer.OnTimeExpired += OnTimeExpired;
     }
+
 
     public void LoadLevel(int levelIndex)
     {
@@ -55,26 +67,35 @@ public class LevelConstructor : MonoBehaviour
             return;
         }
 
+        CancelLevelToken();
+        ClearLevel();
+        CreateLevelToken();
+
         _currentLevelIndex = levelIndex;
         LevelData levelData = _levels[_currentLevelIndex];
+
+        if (!ValidateLevelData(levelData))
+            return;
+
         _levelsWindow.SetActive(false);
         _menuButtonWindow.SetActive(true);
         _reloadbuttonWindow.SetActive(true);
-
-
-        ClearLevel();
+        _winWindow.SetActive(false);
 
         ApplyGridSettings(levelData);
         SpawnCars(levelData);
         _gridManager.BuildObstacles();
-        _winWindow.SetActive(false);
 
         for (int i = 0; i < _spawners.Length; i++)
         {
             ApplySpawner(levelData, i);
         }
+        if (_levelTimer != null)
+            _levelTimer.StartTimer(levelData.TimeLimitSeconds, LevelToken);
+
         _startTextController.ShowIfFirstLevel(levelIndex).Forget();
     }
+
 
     private void SpawnCars(LevelData level)
     {
@@ -117,6 +138,9 @@ public class LevelConstructor : MonoBehaviour
 
     public void ShowMenuWindow()
     {
+        if (_isLoseTriggered)
+            return;
+
         _isMenuPressed = !_isMenuPressed;
         _startTextController.HideText();
         SetPause(_isMenuPressed);
@@ -158,6 +182,8 @@ public class LevelConstructor : MonoBehaviour
 
     public void BackToMainMenu()
     {
+        CancelLevelToken();
+
         _mainMenuWindow.SetActive(true);
         _levelsWindow.SetActive(false);
         _winWindow.SetActive(false);
@@ -171,6 +197,36 @@ public class LevelConstructor : MonoBehaviour
         _startTextController.HideText();
 
         ClearLevel();
+    }
+    public void CheckWinCondition()
+    {
+        if (_isWinTriggered || _isLoseTriggered) return;
+
+        foreach (var spawner in _spawners)
+        {
+            if (!spawner.IsFinished())
+                return;
+        }
+
+        if (_gridManager.HasActiveCars()) return;
+
+        if (_roadManager.HasCars()) return;
+
+        _isWinTriggered = true;
+
+        if (_levelTimer != null)
+            _levelTimer.StopTimer();
+
+        OnLevelCompleted();
+
+        ShowWinWindow();
+    }
+    public void ContinueAfterRewardAd()
+    {
+        if (!_isLoseTriggered)
+            return;
+
+        YG2.RewardedAdvShow("SecondChance", ApplySecondChance);
     }
 
     private void OnLevelCompleted()
@@ -200,14 +256,16 @@ public class LevelConstructor : MonoBehaviour
     }
     private void SetPause(bool isPaused)
     {
-        isPaused = !isPaused;
-
-        Time.timeScale = isPaused ? 1f : 0f;
+        Time.timeScale = isPaused ? 0f : 1f;    
     }
 
     private void ClearLevel()
     {
         _isWinTriggered = false;
+        _isLoseTriggered = false;
+
+        if (_levelTimer != null)
+            _levelTimer.ResetTimer();
 
         _gridManager.ClearGrid();
         _roadManager.ClearCars();
@@ -217,24 +275,103 @@ public class LevelConstructor : MonoBehaviour
             spawner.ClearSpawner();
         }
     }
-        public void CheckWinCondition()
+    private void CreateLevelToken()
     {
-        if (_isWinTriggered) return;
-        
-        foreach (var spawner in _spawners)
+        _levelCts?.Cancel();
+        _levelCts?.Dispose();
+        _levelCts = new CancellationTokenSource();
+    }
+    private void CancelLevelToken()
+    {
+        _levelCts?.Cancel();
+        _levelCts?.Dispose();
+        _levelCts = null;
+    }
+    private bool ValidateLevelData(LevelData level)
+    {
+        if (level == null)
         {
-            if (!spawner.IsFinished())
-                return;
+            Debug.LogError("LevelData is null");
+            return false;
         }
-        
-        if (_gridManager.HasActiveCars()) return;
 
-        if (_roadManager.HasCars()) return;
+        if (level.Cars == null)
+        {
+            Debug.LogError("LevelData.Cars is null");
+            return false;
+        }
 
-        _isWinTriggered = true;
+        if (level.Spawners == null)
+        {
+            Debug.LogError("LevelData.Spawners is null");
+            return false;
+        }
 
-        OnLevelCompleted();
-        
-        ShowWinWindow();
+        foreach (var car in level.Cars)
+        {
+            if (!_gridManager.IsCellExists(car.GridPosition))
+            {
+                Debug.LogError($"Car position {car.GridPosition} is outside grid");
+                return false;
+            }
+
+            var cell = _gridManager.GetCell(car.GridPosition);
+            if (cell == null)
+            {
+                Debug.LogError($"Cell at {car.GridPosition} is null");
+                return false;
+            }
+
+            if (_gridManager.GetExitCells().Contains(cell))
+            {
+                Debug.LogWarning($"Car spawned on exit cell: {car.GridPosition}");
+            }
+        }
+
+        if (level.Spawners.Count > _spawners.Length)
+        {
+            Debug.LogError($"Level has {level.Spawners.Count} spawners, but scene has only {_spawners.Length}");
+            return false;
+        }
+
+        return true;
+    }
+    private void OnTimeExpired()
+    {
+        if (_isWinTriggered || _isLoseTriggered)
+            return;
+
+        _isLoseTriggered = true;
+
+        Time.timeScale = 0f;
+
+        _menuButtonWindow.SetActive(false);
+        _reloadbuttonWindow.SetActive(false);
+
+        if (_loseWindow != null)
+            _loseWindow.SetActive(true);
+    }
+    private void ApplySecondChance()
+    {
+        _isLoseTriggered = false;
+
+        if (_levelTimer != null)
+            _levelTimer.DisableLimit();
+
+        if (_loseWindow != null)
+            _loseWindow.SetActive(false);
+
+        _menuButtonWindow.SetActive(true);
+        _reloadbuttonWindow.SetActive(true);
+
+        Time.timeScale = 1f;
+    }
+
+    private void OnDestroy()
+    {
+        if (_levelTimer != null)
+            _levelTimer.OnTimeExpired -= OnTimeExpired;
+
+        CancelLevelToken();
     }
 }

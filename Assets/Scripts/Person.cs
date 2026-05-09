@@ -76,7 +76,7 @@ public class Person : MonoBehaviour, IColorMatchable, IJumpable, IQueueable
         gameObject.SetActive(false);
     }
 
-    public async UniTask MoveToPosition(Vector3 target, float speed)
+    public async UniTask MoveToPosition(Vector3 target, float speed, CancellationToken token)
     {
         if (speed <= 0f)
         {
@@ -84,9 +84,15 @@ public class Person : MonoBehaviour, IColorMatchable, IJumpable, IQueueable
             return;
         }
 
-        if (target == transform.position) return;
+        if (Vector3.Distance(transform.position, target) <= 0.01f)
+            return;
 
-        var token = _cancellationTokenSource.Token;
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+            this.GetCancellationTokenOnDestroy(),
+            token
+        );
+
+        var linkedToken = linkedCts.Token;
 
         _animator.SetBool(IsWalking, true);
 
@@ -94,8 +100,7 @@ public class Person : MonoBehaviour, IColorMatchable, IJumpable, IQueueable
         {
             while (Vector3.Distance(transform.position, target) > 0.01f)
             {
-                if (this == null || gameObject == null || token.IsCancellationRequested)
-                    return;
+                linkedToken.ThrowIfCancellationRequested();
 
                 Vector3 direction = (target - transform.position).normalized;
                 transform.forward = direction;
@@ -106,7 +111,7 @@ public class Person : MonoBehaviour, IColorMatchable, IJumpable, IQueueable
                     speed * Time.deltaTime
                 );
 
-                await UniTask.Yield(PlayerLoopTiming.Update, token);
+                await UniTask.Yield(PlayerLoopTiming.Update, linkedToken);
             }
 
             transform.position = target;
@@ -117,6 +122,7 @@ public class Person : MonoBehaviour, IColorMatchable, IJumpable, IQueueable
                 _animator.SetBool(IsWalking, false);
         }
     }
+
 
     private void OnDestroy()
     {

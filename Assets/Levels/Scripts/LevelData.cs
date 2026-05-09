@@ -13,6 +13,10 @@ public class LevelData : ScriptableObject
     [Header("Score")]
     public int ScoreReward = 100;
 
+    [Header("Timer")]
+    [Range(10, 300)]
+    public int TimeLimitSeconds = 120;
+
 }
 [System.Serializable]
 public class CarSpawnData

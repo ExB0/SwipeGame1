@@ -11,6 +11,8 @@ public class LocalizationManager : MonoBehaviour
     [SerializeField] private TMP_Text _settingsText;
     [SerializeField] private TMP_Text _levelChoiceText;
     [SerializeField] private TMP_Text _menuText;
+    [SerializeField] private TMP_Text _winText;
+    [SerializeField] private TMP_Text _loseText;
 
     private void OnEnable()
     {
@@ -30,11 +32,7 @@ public class LocalizationManager : MonoBehaviour
 
     private void UpdateLanguage(string lang)
     {
-        if (_startText == null || _settingsText == null || _levelChoiceText == null)
-        {
-            Debug.LogError("LocalizationManager: не все TMP_Text назначены!");
-            return;
-        }
+        if (!Validate()) return;
 
         switch (lang)
         {
@@ -42,31 +40,54 @@ public class LocalizationManager : MonoBehaviour
                 SetTexts("Нажмите на машину чтобы она двигалась",
                  "Настройки",
                   "Выберите уровень",
-                  "Меню");
+                  "Меню",
+                  "Победа",
+                  "Время истекло");
                 break;
 
             case "tr":
                 SetTexts("Arabayı hareket ettirmek için dokunun",
                  "Ayarlar",
                   "Bir seviye seçin",
-                  "Menü");
+                  "Menü",
+                  "Galibiyet",
+                  "süre bitti");
                 break;
 
             default:
                 SetTexts("Tab a car to move",
                  "Settings",
                   "Select a level",
-                  "Menu");
+                  "Menu",
+                  "Victory",
+                  "Time is over");
                 break;
         }
     }
 
-    private void SetTexts(string start, string settings, string exit, string menu)
+    private void SetTexts(string start, string settings, string exit, string menu, string win,string lose)
     {
         _startText.text = start;
         _settingsText.text = settings;
         _levelChoiceText.text = exit;
         _menuText.text = menu;
+        _winText.text = win;
+        _loseText.text = lose;
+    }
+    private bool Validate()
+    {
+        if (_startText == null ||
+            _settingsText == null ||
+            _levelChoiceText == null ||
+            _menuText == null ||
+            _winText == null || 
+            _loseText == null )
+        {
+            Debug.LogError("LocalizationManager: не все TMP_Text назначены!");
+            return false;
+        }
+
+        return true;
     }
 
     public void SetRU()
