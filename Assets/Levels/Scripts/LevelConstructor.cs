@@ -185,7 +185,7 @@ public class LevelConstructor : MonoBehaviour
         {
             data.BestScore = data.TotalScore;
 
-            YG2.SetLeaderboard("LeaderBoardYG2", data.BestScore);
+            YG2.SetLeaderboard("LeaderBoardYG", data.BestScore);
 
             if (_leaderboardYG != null)
                 _leaderboardYG.UpdateLB();
