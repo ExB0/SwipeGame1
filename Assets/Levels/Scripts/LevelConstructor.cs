@@ -67,6 +67,9 @@ public class LevelConstructor : MonoBehaviour
             return;
         }
 
+        Time.timeScale = 1f;
+        _isMenuPressed = false;
+
         CancelLevelToken();
         ClearLevel();
         CreateLevelToken();
@@ -76,6 +79,12 @@ public class LevelConstructor : MonoBehaviour
 
         if (!ValidateLevelData(levelData))
             return;
+
+        if (_loseWindow != null)
+            _loseWindow.SetActive(false);
+
+        if (_menuWindow != null)
+            _menuWindow.SetActive(false);
 
         _levelsWindow.SetActive(false);
         _menuButtonWindow.SetActive(true);
@@ -90,12 +99,38 @@ public class LevelConstructor : MonoBehaviour
         {
             ApplySpawner(levelData, i);
         }
+
         if (_levelTimer != null)
-            _levelTimer.StartTimer(levelData.TimeLimitSeconds, LevelToken);
+            _levelTimer.ShowTimer();
 
         _startTextController.ShowIfFirstLevel(levelIndex).Forget();
     }
+    public void RestartCurrentLevelKeepTimer()
+    {
+        float remainingTime = 0f;
+        bool wasUnlimited = false;
 
+        if (_levelTimer != null)
+        {
+            remainingTime = _levelTimer.RemainingTime;
+            wasUnlimited = _levelTimer.IsUnlimited;
+        }
+
+        LoadLevel(_currentLevelIndex);
+
+        if (_levelTimer == null)
+            return;
+
+        if (wasUnlimited)
+        {
+            _levelTimer.DisableLimit();
+            _levelTimer.ShowTimer();
+        }
+        else if (remainingTime > 0f)
+        {
+            _levelTimer.StartTimer(remainingTime, LevelToken);
+        }
+    }
 
     private void SpawnCars(LevelData level)
     {
@@ -131,6 +166,8 @@ public class LevelConstructor : MonoBehaviour
 
     public void ShowWinWindow()
     {
+        _levelTimer?.HideTimer();
+
         _menuButtonWindow.SetActive(false);
         _reloadbuttonWindow.SetActive(false);
         _winWindow.SetActive(true);
@@ -145,27 +182,37 @@ public class LevelConstructor : MonoBehaviour
         _startTextController.HideText();
         SetPause(_isMenuPressed);
         _menuWindow.SetActive(_isMenuPressed);
+
+        if (_levelTimer != null)
+        {
+            if (_isMenuPressed)
+                _levelTimer.HideTimer();
+            else
+                _levelTimer.ShowTimer();
+        }
     }
 
     public void LoadNextLevel()
     {
-        _currentLevelIndex++;
+        int nextLevelIndex = _currentLevelIndex + 1;
 
-        if (_currentLevelIndex >= _levels.Length)
+        if (nextLevelIndex >= _levels.Length)
         {
             Debug.Log("No more levels!");
             return;
         }
+
         _adsManager.RegisterAction(2);
 
         if (_adsManager.TryShowAd(() =>
         {
-            LoadLevel(_currentLevelIndex);
+            LoadLevelWithTimerReset(nextLevelIndex);
         }))
             return;
 
-        LoadLevel(_currentLevelIndex);
+        LoadLevelWithTimerReset(nextLevelIndex);
     }
+
 
     public void LoadCurrentLevel()
     {
@@ -173,11 +220,11 @@ public class LevelConstructor : MonoBehaviour
 
         if (_adsManager.TryShowAd(() =>
         {
-            LoadLevel(_currentLevelIndex);
+            RestartCurrentLevelKeepTimer();
         }))
             return;
 
-        LoadLevel(_currentLevelIndex);
+        RestartCurrentLevelKeepTimer();
     }
 
     public void BackToMainMenu()
@@ -215,7 +262,7 @@ public class LevelConstructor : MonoBehaviour
         _isWinTriggered = true;
 
         if (_levelTimer != null)
-            _levelTimer.StopTimer();
+            _levelTimer?.StopAndHide();
 
         OnLevelCompleted();
 
@@ -227,6 +274,23 @@ public class LevelConstructor : MonoBehaviour
             return;
 
         YG2.RewardedAdvShow("SecondChance", ApplySecondChance);
+    }
+    public void RestartAfterLose()
+    {
+        LoadLevelWithTimerReset(_currentLevelIndex);
+    }
+    public void LoadLevelWithTimerReset(int levelIndex)
+    {
+        if (levelIndex < 0 || levelIndex >= _levels.Length)
+        {
+            Debug.LogError("Invalid level index!");
+            return;
+        }
+
+        LoadLevel(levelIndex);
+
+        LevelData levelData = _levels[levelIndex];
+        StartLevelTimer(levelData);
     }
 
     private void OnLevelCompleted()
@@ -263,9 +327,6 @@ public class LevelConstructor : MonoBehaviour
     {
         _isWinTriggered = false;
         _isLoseTriggered = false;
-
-        if (_levelTimer != null)
-            _levelTimer.ResetTimer();
 
         _gridManager.ClearGrid();
         _roadManager.ClearCars();
@@ -343,6 +404,8 @@ public class LevelConstructor : MonoBehaviour
 
         _isLoseTriggered = true;
 
+        _levelTimer?.StopAndHide();
+
         Time.timeScale = 0f;
 
         _menuButtonWindow.SetActive(false);
@@ -351,12 +414,9 @@ public class LevelConstructor : MonoBehaviour
         if (_loseWindow != null)
             _loseWindow.SetActive(true);
     }
-    private void ApplySecondChance()
+    private async void ApplySecondChance()
     {
         _isLoseTriggered = false;
-
-        if (_levelTimer != null)
-            _levelTimer.DisableLimit();
 
         if (_loseWindow != null)
             _loseWindow.SetActive(false);
@@ -364,7 +424,21 @@ public class LevelConstructor : MonoBehaviour
         _menuButtonWindow.SetActive(true);
         _reloadbuttonWindow.SetActive(true);
 
-        Time.timeScale = 1f;
+        await UniTask.Yield();
+
+        Time.timeScale = 1f;        
+
+        if (_levelTimer != null)
+        {
+            _levelTimer.DisableLimit();
+            _levelTimer.ShowTimer();
+        }
+    }
+    private void StartLevelTimer(LevelData levelData)
+    {
+        if (_levelTimer == null) return;
+
+        _levelTimer.StartTimer(levelData.TimeLimitSeconds, LevelToken);
     }
 
     private void OnDestroy()

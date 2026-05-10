@@ -22,6 +22,6 @@ public class LevelButton : MonoBehaviour
     {
         if (!_button.interactable) return;
 
-        LevelConstructor.Instance.LoadLevel(_levelIndex);
+        LevelConstructor.Instance.LoadLevelWithTimerReset(_levelIndex);
     }
 }

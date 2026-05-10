@@ -13,6 +13,7 @@ public class LocalizationManager : MonoBehaviour
     [SerializeField] private TMP_Text _menuText;
     [SerializeField] private TMP_Text _winText;
     [SerializeField] private TMP_Text _loseText;
+    [SerializeField] private TMP_Text _rewardText;
 
     private void OnEnable()
     {
@@ -42,7 +43,8 @@ public class LocalizationManager : MonoBehaviour
                   "Выберите уровень",
                   "Меню",
                   "Победа",
-                  "Время истекло");
+                  "Время истекло",
+                  "Посмотрите рекламу,чтобы продолжить");
                 break;
 
             case "tr":
@@ -51,7 +53,8 @@ public class LocalizationManager : MonoBehaviour
                   "Bir seviye seçin",
                   "Menü",
                   "Galibiyet",
-                  "süre bitti");
+                  "süre bitti",
+                  "Devam etmek için reklamı izleyin");
                 break;
 
             default:
@@ -60,12 +63,13 @@ public class LocalizationManager : MonoBehaviour
                   "Select a level",
                   "Menu",
                   "Victory",
-                  "Time is over");
+                  "Time is over",
+                  "Watch the AD to continue");
                 break;
         }
     }
 
-    private void SetTexts(string start, string settings, string exit, string menu, string win,string lose)
+    private void SetTexts(string start, string settings, string exit, string menu, string win, string lose, string reward)
     {
         _startText.text = start;
         _settingsText.text = settings;
@@ -73,6 +77,7 @@ public class LocalizationManager : MonoBehaviour
         _menuText.text = menu;
         _winText.text = win;
         _loseText.text = lose;
+        _rewardText.text = reward;
     }
     private bool Validate()
     {
@@ -81,7 +86,8 @@ public class LocalizationManager : MonoBehaviour
             _levelChoiceText == null ||
             _menuText == null ||
             _winText == null || 
-            _loseText == null )
+            _loseText == null ||
+            _rewardText == null)
         {
             Debug.LogError("LocalizationManager: не все TMP_Text назначены!");
             return false;

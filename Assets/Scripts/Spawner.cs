@@ -225,6 +225,5 @@ public class Spawner : MonoBehaviour
     private void OnDestroy()
     {
         CancelToken();
-        _queueLock.Dispose();
     }
 }

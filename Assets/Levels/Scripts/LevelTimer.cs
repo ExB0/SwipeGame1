@@ -7,6 +7,7 @@ using UnityEngine;
 public class LevelTimer : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI _timerText;
+    [SerializeField] private GameObject _timer;
 
     private CancellationTokenSource _timerCts;
     private float _remainingTime;
@@ -17,6 +18,23 @@ public class LevelTimer : MonoBehaviour
 
     public bool IsUnlimited => _isUnlimited;
     public float RemainingTime => _remainingTime;
+
+    public void Awake()
+    {
+        if (_timerText == null)
+        {
+            Debug.LogError($"{nameof(LevelTimer)}: TimerText is NOT assigned!", this);
+        }
+
+        if (_timer == null)
+        {
+            Debug.LogWarning($"{nameof(LevelTimer)}: Timer root is not assigned, using TimerText GameObject", this);
+
+            if (_timerText != null)
+                _timer = _timerText.gameObject;
+        }
+        HideTimer();
+    }
 
     public void StartTimer(float seconds, CancellationToken levelToken)
     {
@@ -62,6 +80,22 @@ public class LevelTimer : MonoBehaviour
         _isUnlimited = true;
 
         UpdateView();
+    }
+    public void ShowTimer()
+    {
+        if (_timer == null) return;
+        _timer.SetActive(true);
+    }
+
+    public void HideTimer()
+    {
+        if (_timer == null) return;
+        _timer.SetActive(false);
+    }
+    public void StopAndHide()
+    {
+        StopTimer();
+        HideTimer();
     }
 
     private async UniTaskVoid RunTimerAsync(CancellationToken token)
