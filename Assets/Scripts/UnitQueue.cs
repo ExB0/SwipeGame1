@@ -12,12 +12,12 @@ public class UnitQueue : MonoBehaviour
 
     public int Count => _queue.Count;
     public int Capacity => _queuePositions.Length;
+    
     private void Awake()
     {
         if (_queuePositions == null || _queuePositions.Length == 0)
             Debug.LogError($"{name}: queue positions are empty");
     }
-
 
     public async UniTask Enqueue(GameObject obj, CancellationToken token)
     {
@@ -76,11 +76,11 @@ public class UnitQueue : MonoBehaviour
         await UniTask.WhenAll(tasks);
     }
 
-
     public IQueueable Peek()
     {
         return _queue.Count > 0 ? _queue.Peek() : null;
     }
+    
     public void ClearImmediate()
     {
         foreach (var unit in _queue)
@@ -89,9 +89,9 @@ public class UnitQueue : MonoBehaviour
             if (go != null)
                 go.SetActive(false);
         }
-
         _queue.Clear();
     }
+    
     public void ClearAndDestroy()
     {
         foreach (var unit in _queue)
@@ -100,7 +100,6 @@ public class UnitQueue : MonoBehaviour
             if (go != null)
                 Destroy(go);
         }
-
         _queue.Clear();
     }
 }

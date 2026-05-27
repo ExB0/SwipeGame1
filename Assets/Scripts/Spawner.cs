@@ -14,7 +14,6 @@ public class Spawner : MonoBehaviour
     [SerializeField] private int _spawnDelayMs = 50;
 
     private readonly SemaphoreSlim _queueLock = new SemaphoreSlim(1, 1);
-
     private bool _isActive;
     private LevelConstructor _levelConstructor;
     private IUnitFactory _unitFactory;
@@ -26,7 +25,6 @@ public class Spawner : MonoBehaviour
     private void Awake()
     {
         _unitFactory = _factorySource as IUnitFactory;
-
         if (_unitFactory == null)
             Debug.LogError("Spawner: _factorySource does not implement IUnitFactory");
     }
@@ -39,10 +37,7 @@ public class Spawner : MonoBehaviour
 
     public void SetPeopleQueue(List<PersonSpawnData> people)
     {
-        _peopleQueueData = people != null
-            ? new List<PersonSpawnData>(people)
-            : new List<PersonSpawnData>();
-
+        _peopleQueueData = people != null ? new List<PersonSpawnData>(people) : new List<PersonSpawnData>();
         _currentPersonIndex = 0;
         UpdateRemainingText();
     }
@@ -51,24 +46,31 @@ public class Spawner : MonoBehaviour
     {
         CancelToken();
         CreateToken();
-
+        
+        try
+        {
+            while (_queueLock.CurrentCount == 0)
+            {
+                _queueLock.Release();
+            }
+        }
+        catch (SemaphoreFullException) { }
+        
         _isActive = true;
+        
         FillQueueAsync(_spawnerCts.Token).Forget();
     }
 
     private async UniTaskVoid FillQueueAsync(CancellationToken token)
     {
         await _queueLock.WaitAsync(token);
-
         try
         {
             for (int i = 0; i < _unitQueue.Capacity; i++)
             {
                 token.ThrowIfCancellationRequested();
-
                 if (_currentPersonIndex >= _peopleQueueData.Count)
                     break;
-
                 await EnqueueNextInternal(token);
             }
         }
@@ -84,12 +86,12 @@ public class Spawner : MonoBehaviour
     private async void OnTriggerStay(Collider other)
     {
         if (!_isActive) return;
-
+        
         var car = other.GetComponent<Car>();
         if (car == null) return;
-
+        
         var token = _spawnerCts?.Token ?? CancellationToken.None;
-
+        
         try
         {
             await TryProcessCar(car, token);
@@ -103,29 +105,26 @@ public class Spawner : MonoBehaviour
     {
         if (!await _queueLock.WaitAsync(0, token))
             return;
-
+        
         try
         {
             token.ThrowIfCancellationRequested();
-
+            
             var personQueueable = _unitQueue.Peek();
             if (personQueueable == null) return;
-
+            
             var person = (personQueueable as MonoBehaviour)?.GetComponent<Person>();
             if (person == null) return;
-
             if (person.IsJumped) return;
-
+            
             var context = new TakeContext(car, person, person, car);
-
-            if (!_takeStrategy.TryTake(context))
-                return;
-
+            if (!_takeStrategy.TryTake(context)) return;
+            
             await _unitQueue.Dequeue(token);
-
+            
             if (_currentPersonIndex < _peopleQueueData.Count)
                 await EnqueueNextInternal(token);
-
+            
             _levelConstructor.CheckWinCondition();
         }
         finally
@@ -138,21 +137,20 @@ public class Spawner : MonoBehaviour
     {
         if (_currentPersonIndex >= _peopleQueueData.Count)
             return;
-
+        
         await UniTask.Delay(_spawnDelayMs, DelayType.DeltaTime, PlayerLoopTiming.Update, token);
-
+        
         var personData = _peopleQueueData[_currentPersonIndex];
-
         GameObject obj = _unitFactory.Create(
             personData.UnitType,
             personData.Color,
             _spawnPoint.position
         );
-
+        
         if (obj == null) return;
-
+        
         await _unitQueue.Enqueue(obj, token);
-
+        
         _currentPersonIndex++;
         UpdateRemainingText();
     }
@@ -160,9 +158,7 @@ public class Spawner : MonoBehaviour
     public async UniTask ClearSpawnerAsync()
     {
         CancelToken();
-
         await _queueLock.WaitAsync();
-
         try
         {
             _isActive = false;
@@ -179,19 +175,25 @@ public class Spawner : MonoBehaviour
     public void ClearSpawner()
     {
         CancelToken();
-
+        
+        try
+        {
+            while (_queueLock.CurrentCount == 0)
+            {
+                _queueLock.Release();
+            }
+        }
+        catch (SemaphoreFullException) { }
+        
         _isActive = false;
         _unitQueue.ClearAndDestroy();
-
         _currentPersonIndex = 0;
-
         UpdateRemainingText();
     }
 
     public bool IsFinished()
     {
-        return _currentPersonIndex >= _peopleQueueData.Count
-            && _unitQueue.Count == 0;
+        return _currentPersonIndex >= _peopleQueueData.Count && _unitQueue.Count == 0;
     }
 
     private void UpdateRemainingText()
@@ -204,15 +206,8 @@ public class Spawner : MonoBehaviour
     {
         _spawnerCts?.Cancel();
         _spawnerCts?.Dispose();
-
-        var levelToken = LevelConstructor.Instance != null
-            ? LevelConstructor.Instance.LevelToken
-            : CancellationToken.None;
-
-        _spawnerCts = CancellationTokenSource.CreateLinkedTokenSource(
-            this.GetCancellationTokenOnDestroy(),
-            levelToken
-        );
+        var levelToken = LevelConstructor.Instance != null ? LevelConstructor.Instance.LevelToken : CancellationToken.None;
+        _spawnerCts = CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy(), levelToken);
     }
 
     private void CancelToken()
@@ -225,5 +220,6 @@ public class Spawner : MonoBehaviour
     private void OnDestroy()
     {
         CancelToken();
+        _queueLock?.Dispose();
     }
 }
