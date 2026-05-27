@@ -14,6 +14,9 @@ public class LocalizationManager : MonoBehaviour
     [SerializeField] private TMP_Text _winText;
     [SerializeField] private TMP_Text _loseText;
     [SerializeField] private TMP_Text _rewardText;
+    [SerializeField] private TMP_Text _nextLevelText;
+
+    [SerializeField] private List<TMP_Text> _restartTexts;
 
     private void OnEnable()
     {
@@ -44,7 +47,9 @@ public class LocalizationManager : MonoBehaviour
                   "Меню",
                   "Победа",
                   "Время истекло",
-                  "Посмотрите рекламу,чтобы продолжить");
+                  "Посмотрите рекламу,чтобы продолжить",
+                  "Следующий уровень",
+                  "Заново");
                 break;
 
             case "tr":
@@ -54,7 +59,9 @@ public class LocalizationManager : MonoBehaviour
                   "Menü",
                   "Galibiyet",
                   "süre bitti",
-                  "Devam etmek için reklamı izleyin");
+                  "Devam etmek için reklamı izleyin",
+                  "Sonraki seviye",
+                  "Yeniden");
                 break;
 
             default:
@@ -64,12 +71,14 @@ public class LocalizationManager : MonoBehaviour
                   "Menu",
                   "Victory",
                   "Time is over",
-                  "Watch the AD to continue");
+                  "Watch the AD to continue",
+                  "Next Level",
+                  "Again");
                 break;
         }
     }
 
-    private void SetTexts(string start, string settings, string exit, string menu, string win, string lose, string reward)
+    private void SetTexts(string start, string settings, string exit, string menu, string win, string lose, string reward, string nextLevel,string restart)
     {
         _startText.text = start;
         _settingsText.text = settings;
@@ -78,6 +87,13 @@ public class LocalizationManager : MonoBehaviour
         _winText.text = win;
         _loseText.text = lose;
         _rewardText.text = reward;
+        _nextLevelText.text = nextLevel;
+
+        foreach (var txt in _restartTexts)
+        {
+            if (txt != null)
+                txt.text = restart;
+        }
     }
     private bool Validate()
     {
@@ -87,7 +103,10 @@ public class LocalizationManager : MonoBehaviour
             _menuText == null ||
             _winText == null || 
             _loseText == null ||
-            _rewardText == null)
+            _rewardText == null ||
+            _nextLevelText == null ||
+            _restartTexts == null ||
+            _restartTexts.Count == 0)
         {
             Debug.LogError("LocalizationManager: не все TMP_Text назначены!");
             return false;

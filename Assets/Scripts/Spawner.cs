@@ -77,10 +77,14 @@ public class Spawner : MonoBehaviour
         catch (OperationCanceledException)
         {
         }
-        finally
-        {
-            _queueLock.Release();
-        }
+            if (_queueLock != null)
+            {
+                try
+                {
+                    _queueLock.Release();
+                }
+                catch (ObjectDisposedException) { }
+            }
     }
 
     private async void OnTriggerStay(Collider other)

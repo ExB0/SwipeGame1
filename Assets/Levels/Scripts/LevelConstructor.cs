@@ -88,6 +88,7 @@ public class LevelConstructor : MonoBehaviour
 
         if (_levelTimer != null) _levelTimer.ShowTimer();
         _startTextController.ShowIfFirstLevel(levelIndex).Forget();
+        SoundManager.Instance.ResumeMusic();
     }
 
     public void RestartCurrentLevelKeepTimer()
@@ -146,6 +147,7 @@ public class LevelConstructor : MonoBehaviour
         _menuButtonWindow.SetActive(false);
         _reloadbuttonWindow.SetActive(false);
         _winWindow.SetActive(true);
+        SoundManager.Instance.PauseMusic();
     }
 
     public void ShowMenuWindow()
@@ -243,20 +245,32 @@ public class LevelConstructor : MonoBehaviour
         LevelData levelData = _levels[levelIndex];
         StartLevelTimer(levelData);
     }
+    public void LoadCurrentLevelWithTimerReset()
+    {
+        int levelIndex = _currentLevelIndex;
+        if (levelIndex < 0 || levelIndex >= _levels.Length)
+        {
+            Debug.LogError("Invalid level index!");
+            return;
+        }
+        LoadLevel(levelIndex);
+        LevelData levelData = _levels[levelIndex];
+        StartLevelTimer(levelData);
+    }
 
     private void OnLevelCompleted()
     {
         var data = SaveSystem.Load();
         int reward = _levels[_currentLevelIndex].ScoreReward;
         data.TotalScore += reward;
-        
+
         if (data.TotalScore > data.BestScore)
         {
             data.BestScore = data.TotalScore;
             YG2.SetLeaderboard("LeaderBoardYG", data.BestScore);
             if (_leaderboardYG != null) _leaderboardYG.UpdateLB();
         }
-        
+
         if (_currentLevelIndex >= data.UnlockedLevel)
         {
             data.UnlockedLevel = _currentLevelIndex + 1;
@@ -345,6 +359,7 @@ public class LevelConstructor : MonoBehaviour
         _menuButtonWindow.SetActive(false);
         _reloadbuttonWindow.SetActive(false);
         if (_loseWindow != null) _loseWindow.SetActive(true);
+        SoundManager.Instance.PauseMusic();
     }
 
     private async void ApplySecondChance()
