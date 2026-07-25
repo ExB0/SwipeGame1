@@ -11,6 +11,7 @@
   "dependencies": {
     "com.cysharp.unitask": "2.2.5",
     "com.unity.feature.2d": "2.0.1",
+    "com.unity.recorder": "4.0.3",
     "com.unity.shadergraph": "14.0.12",
     "com.unity.splines": "2.8.0",
     "com.unity.textmeshpro": "3.0.9",

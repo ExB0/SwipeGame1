@@ -28,6 +28,8 @@ public class GridManager : MonoBehaviour
 
     private Dictionary<Vector2Int, Cell> _grid = new Dictionary<Vector2Int, Cell>();
     private IUnitFactory _unitFactory;
+    private RoadManager _roadManager;
+
 
 
     private void Awake()
@@ -51,6 +53,13 @@ public class GridManager : MonoBehaviour
             return;
         }
 
+        _roadManager = FindAnyObjectByType<RoadManager>();
+
+        if (_roadManager == null)
+        {
+            Debug.LogError("RoadManager is null");
+        }
+
         BuildGrid();
     }
 
@@ -59,6 +68,12 @@ public class GridManager : MonoBehaviour
         if (_unitFactory == null)
         {
             Debug.LogError("UnitFactory is null");
+            return;
+        }
+
+        if (_roadManager == null)
+        {
+            Debug.LogError("RoadManager is null");
             return;
         }
 
@@ -103,6 +118,8 @@ public class GridManager : MonoBehaviour
 
         _activeCars.Add(car);
         _carsToDestroy.Add(car);
+
+        _roadManager?.UpdateCells();
     }
 
     public void BuildObstacles()
@@ -128,6 +145,8 @@ public class GridManager : MonoBehaviour
                 cell.SetObstacle(false);
             }
         }
+
+        _roadManager?.UpdateCells();
     }
 
     public Cell GetCell(Vector2Int gridPosition)
@@ -178,6 +197,14 @@ public class GridManager : MonoBehaviour
         _activeCars.RemoveAll(c => c == null);
 
         return _activeCars.Count > 0;
+    }
+    public void SetCellsAvailable(bool available)
+    {
+        foreach (var cell in _cells)
+        {
+            if (cell.HasCar)
+                cell.SetAvailable(available);
+        }
     }
     private void BuildGrid()
     {

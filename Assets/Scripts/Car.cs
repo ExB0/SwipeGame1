@@ -17,7 +17,11 @@ public class Car : MonoBehaviour, IColorMatchable
     [SerializeField] private GameObject[] _passengers;
     [SerializeField] private ParticleSystem _smoke;
 
+    [SerializeField] private AudioSource _engineStartAudio;
+
     public Color GetColor() => _color;
+    public bool IsMoving => _isMoving;
+
 
     private LevelConstructor _levelConstructor;
     private Transform _roadPoint;
@@ -98,49 +102,40 @@ public class Car : MonoBehaviour, IColorMatchable
 
         UniTask.Void(async () => await HandleClick());
     }
-
-
     private async UniTask HandleClick()
     {
         Cell currentCell = GetCurrentCell();
 
-        if (currentCell == null) return;
+        if (currentCell == null)
+            return;
 
-        if (_gridManager.GetExitCells().Contains(currentCell))
+        if (!TryGetPathToExit(currentCell, out List<Vector2Int> path))
+        {
+            _scaleShakeEffect?.Shake();
+            return;
+        }
+
+        _isMoving = true;
+
+        currentCell.SetAvailable(false);
+        currentCell.TryClearCar();
+
+        _roadManager.AddCar();
+        _roadManager.UpdateCells();
+
+        if (path.Count == 0)
         {
             _isMoving = true;
-            Debug.Log($"{currentCell.GridPosition}");
-            currentCell.TryClearCar();
-            await MoveToPosition(transform.position + Vector3.forward * 1f);
 
+            await MoveToPosition(transform.position + Vector3.forward * 1f);
             await MoveToPosition(_roadPoint.position);
             await PlaySplineAnimator();
+
             return;
         }
 
-        Vector2Int startPos = currentCell.GridPosition;
-        List<Cell> exitCells = _gridManager.GetExitCells();
-
-        if (exitCells.Count == 0)
-        {
-            Debug.LogWarning("Нет выхода Ало");
-            return;
-        }
-
-        Cell bestExit = FindClosestExit(startPos, exitCells);
-        List<Vector2Int> path = _pathFinder.FindPath(startPos, bestExit.GridPosition);
-
-        if (path != null && path.Count > 0)
-        {
-            _roadManager.AddCar();
-            await MoveAlongPath(path);
-        }
-        else
-        {
-            _scaleShakeEffect.Shake();
-        }
+        await MoveAlongPath(path);
     }
-
     private Cell FindClosestExit(Vector2Int startPos, List<Cell> exitCells)
     {
         Cell bestExit = exitCells[0];
@@ -184,6 +179,10 @@ public class Car : MonoBehaviour, IColorMatchable
 
         _splineAnimator.enabled = false;
         _splineAnimator.Container = splineContainer;
+        }
+    public bool CanMoveFrom(Cell currentCell)
+    {
+        return TryGetPathToExit(currentCell, out _);
     }
 
     public void SetRoad(Transform point) => _roadPoint = point;
@@ -192,11 +191,9 @@ public class Car : MonoBehaviour, IColorMatchable
     {
         var token = this.GetCancellationTokenOnDestroy();
 
-        _isMoving = true;
-        _rigidbody.isKinematic = false;
+        PlayEngineSound();
 
-        Cell currentCell = GetCurrentCell();
-        currentCell?.TryClearCar();
+        _rigidbody.isKinematic = false;
 
         foreach (Vector2Int nextCellPos in path)
         {
@@ -212,17 +209,84 @@ public class Car : MonoBehaviour, IColorMatchable
             }
 
             nextCell.TryApplyCar(this);
-            _smoke.Clear();
-            _smoke.Play();
+
+            _roadManager.UpdateCells();
+
+            if (_smoke != null)
+            {
+                _smoke.Clear();
+                _smoke.Play();
+            }
+
             await MoveToPosition(nextCell.transform.position + Vector3.up * 0.5f);
+
             nextCell.TryClearCar();
+
+            _roadManager.UpdateCells();
         }
-       _gridManager.RemoveCar(this);
+
+        _gridManager.RemoveCar(this);
+
+        _roadManager.UpdateCells();
+
         Vector3 exitPosition = transform.position;
         await MoveToPosition(exitPosition + Vector3.forward * 3f);
 
+        _roadManager.UpdateCells();
+
         await MoveToPosition(_roadPoint.position);
         await PlaySplineAnimator();
+    }
+
+    private bool TryGetPathToExit(Cell currentCell, out List<Vector2Int> path)
+    {
+        path = null;
+
+        GridManager grid = GridManager.Instance;
+
+        if (grid == null)
+            return false;
+
+        if (currentCell == null)
+            return false;
+
+        List<Cell> exitCells = grid.GetExitCells();
+
+        if (exitCells == null || exitCells.Count == 0)
+            return false;
+
+        if (exitCells.Contains(currentCell))
+        {
+            path = new List<Vector2Int>();
+            return true;
+        }
+
+        Cell bestExit = null;
+        List<Vector2Int> bestPath = null;
+
+        foreach (var exit in exitCells)
+        {
+            if (exit == null)
+                continue;
+
+            List<Vector2Int> candidatePath = _pathFinder.FindPath(
+                currentCell.GridPosition,
+                exit.GridPosition
+            );
+
+            if (candidatePath == null || candidatePath.Count == 0)
+                continue;
+
+            if (bestPath == null || candidatePath.Count < bestPath.Count)
+            {
+                bestPath = candidatePath;
+                bestExit = exit;
+            }
+        }
+
+        path = bestPath;
+
+        return path != null;
     }
 
     private async UniTask PlaySplineAnimator()
@@ -344,10 +408,21 @@ public class Car : MonoBehaviour, IColorMatchable
             _roadManager.RemoveCar();
             _leaving = true;
             LeaveSpline().Forget();
+            _levelConstructor.CheckWinCondition();
         }
         else
         {
             PlaySplineAnimator().Forget();
+        }
+    }
+    private void PlayEngineSound()
+    {
+        if (_engineStartAudio != null)
+        {
+            _engineStartAudio.pitch = Random.Range(0.95f, 1.05f);
+            _engineStartAudio.volume = Random.Range(0.85f, 1f);
+
+            _engineStartAudio.Play();
         }
     }
 

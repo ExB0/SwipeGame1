@@ -14,6 +14,8 @@ public class Person : MonoBehaviour, IColorMatchable, IJumpable, IQueueable
     [SerializeField] private Animator _animator;
     [SerializeField] private float _animatorSpeed;
 
+    [SerializeField] private AudioSource _pickupSound;
+
     public bool IsJumped { get; private set; }
     public Color GetColor() => _color;
 
@@ -56,6 +58,8 @@ public class Person : MonoBehaviour, IColorMatchable, IJumpable, IQueueable
 
         IsJumped = true;
 
+        PlaySound();
+
 
         Vector3 start = transform.position;
         float time = 0f;
@@ -73,6 +77,7 @@ public class Person : MonoBehaviour, IColorMatchable, IJumpable, IQueueable
         }
 
         transform.position = target;
+        await UniTask.Delay(30);
         gameObject.SetActive(false);
     }
 
@@ -121,6 +126,11 @@ public class Person : MonoBehaviour, IColorMatchable, IJumpable, IQueueable
             if (_animator != null)
                 _animator.SetBool(IsWalking, false);
         }
+    }
+
+    private void PlaySound()
+    {
+        _pickupSound.Play();
     }
 
 

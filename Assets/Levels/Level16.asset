@@ -140,3 +140,4 @@ MonoBehaviour:
     - UnitType: 1
       Color: 0
   ScoreReward: 500
+  TimeLimitSeconds: 150

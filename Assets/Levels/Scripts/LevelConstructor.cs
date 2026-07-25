@@ -22,12 +22,16 @@ public class LevelConstructor : MonoBehaviour
     [SerializeField] private LevelTimer _levelTimer;
     [SerializeField] private GameObject _loseWindow;
     [SerializeField] private AdsManager _adsManager;
+    [SerializeField] private LocalizationManager _localizationManager;
+
 
     private bool _isMenuPressed = false;
     private bool _isLoseTriggered;
     private int _currentLevelIndex = 0;
     private bool _isWinTriggered = false;
     private CancellationTokenSource _levelCts;
+    private int _lastLevelReward;
+
     public CancellationToken LevelToken => _levelCts?.Token ?? CancellationToken.None;
 
     private void Awake()
@@ -102,6 +106,8 @@ public class LevelConstructor : MonoBehaviour
         }
 
         LoadLevel(_currentLevelIndex);
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
 
         if (_levelTimer == null) return;
         if (wasUnlimited)
@@ -144,11 +150,19 @@ public class LevelConstructor : MonoBehaviour
     public void ShowWinWindow()
     {
         _levelTimer?.HideTimer();
+
         _menuButtonWindow.SetActive(false);
         _reloadbuttonWindow.SetActive(false);
+
+        if (_localizationManager != null)
+            _localizationManager.SetScoreReward(_lastLevelReward);
+
         _winWindow.SetActive(true);
+
         SoundManager.Instance.PauseMusic();
+        SoundManager.Instance.PlayWinSound();
     }
+
 
     public void ShowMenuWindow()
     {
@@ -157,7 +171,7 @@ public class LevelConstructor : MonoBehaviour
         _startTextController.HideText();
         SetPause(_isMenuPressed);
         _menuWindow.SetActive(_isMenuPressed);
-        
+
         if (_levelTimer != null)
         {
             if (_isMenuPressed) _levelTimer.HideTimer();
@@ -184,7 +198,8 @@ public class LevelConstructor : MonoBehaviour
     public void LoadCurrentLevel()
     {
         _adsManager.RegisterAction(1);
-        if (_adsManager.TryShowAd(() => { RestartCurrentLevelKeepTimer(); }))
+
+        if (_adsManager.TryShowAd(RestartCurrentLevelKeepTimer))
             return;
 
         RestartCurrentLevelKeepTimer();
@@ -227,10 +242,15 @@ public class LevelConstructor : MonoBehaviour
     {
         if (!_isLoseTriggered) return;
         YG2.RewardedAdvShow("SecondChance", ApplySecondChance);
+        SoundManager.Instance.ResumeMusic();
     }
 
     public void RestartAfterLose()
     {
+        _adsManager.RegisterAction(1);
+        if (_adsManager.TryShowAd(() => LoadLevelWithTimerReset(_currentLevelIndex)))
+            return;
+
         LoadLevelWithTimerReset(_currentLevelIndex);
     }
 
@@ -261,22 +281,29 @@ public class LevelConstructor : MonoBehaviour
     private void OnLevelCompleted()
     {
         var data = SaveSystem.Load();
+
         int reward = _levels[_currentLevelIndex].ScoreReward;
+        _lastLevelReward = reward;
+
         data.TotalScore += reward;
 
         if (data.TotalScore > data.BestScore)
         {
             data.BestScore = data.TotalScore;
             YG2.SetLeaderboard("LeaderBoardYG", data.BestScore);
-            if (_leaderboardYG != null) _leaderboardYG.UpdateLB();
+
+            if (_leaderboardYG != null)
+                _leaderboardYG.UpdateLB();
         }
 
         if (_currentLevelIndex >= data.UnlockedLevel)
         {
             data.UnlockedLevel = _currentLevelIndex + 1;
         }
+
         SaveSystem.Save(data);
     }
+
 
     private void SetPause(bool isPaused)
     {
@@ -359,7 +386,9 @@ public class LevelConstructor : MonoBehaviour
         _menuButtonWindow.SetActive(false);
         _reloadbuttonWindow.SetActive(false);
         if (_loseWindow != null) _loseWindow.SetActive(true);
+
         SoundManager.Instance.PauseMusic();
+        SoundManager.Instance.PlayLoseSound();
     }
 
     private async void ApplySecondChance()
@@ -388,4 +417,5 @@ public class LevelConstructor : MonoBehaviour
         if (_levelTimer != null) _levelTimer.OnTimeExpired -= OnTimeExpired;
         CancelLevelToken();
     }
+    
 }

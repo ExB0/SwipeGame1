@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
@@ -15,8 +14,11 @@ public class LocalizationManager : MonoBehaviour
     [SerializeField] private TMP_Text _loseText;
     [SerializeField] private TMP_Text _rewardText;
     [SerializeField] private TMP_Text _nextLevelText;
+    [SerializeField] private TMP_Text _scoreRewardText;
 
     [SerializeField] private List<TMP_Text> _restartTexts;
+
+    private int _lastScoreReward;
 
     private void OnEnable()
     {
@@ -41,44 +43,61 @@ public class LocalizationManager : MonoBehaviour
         switch (lang)
         {
             case "ru":
-                SetTexts("Нажмите на машину чтобы она двигалась",
-                 "Настройки",
-                  "Выберите уровень",
-                  "Меню",
-                  "Победа",
-                  "Время истекло",
-                  "Посмотрите рекламу,чтобы продолжить",
-                  "Следующий уровень",
-                  "Заново");
+                SetTexts(
+                    "Нажмите на машину чтобы она двигалась",
+                    "Настройки",
+                    "Выберите уровень",
+                    "Меню",
+                    "Победа",
+                    "Время истекло",
+                    "Посмотрите рекламу, чтобы продолжить",
+                    "Следующий уровень",
+                    "Заново"
+                );
                 break;
 
             case "tr":
-                SetTexts("Arabayı hareket ettirmek için dokunun",
-                 "Ayarlar",
-                  "Bir seviye seçin",
-                  "Menü",
-                  "Galibiyet",
-                  "süre bitti",
-                  "Devam etmek için reklamı izleyin",
-                  "Sonraki seviye",
-                  "Yeniden");
+                SetTexts(
+                    "Arabayı hareket ettirmek için dokunun",
+                    "Ayarlar",
+                    "Bir seviye seçin",
+                    "Menü",
+                    "Galibiyet",
+                    "Süre bitti",
+                    "Devam etmek için reklamı izleyin",
+                    "Sonraki seviye",
+                    "Yeniden"
+                );
                 break;
 
             default:
-                SetTexts("Tab a car to move",
-                 "Settings",
-                  "Select a level",
-                  "Menu",
-                  "Victory",
-                  "Time is over",
-                  "Watch the AD to continue",
-                  "Next Level",
-                  "Again");
+                SetTexts(
+                    "Tap a car to move",
+                    "Settings",
+                    "Select a level",
+                    "Menu",
+                    "Victory",
+                    "Time is over",
+                    "Watch the AD to continue",
+                    "Next Level",
+                    "Again"
+                );
                 break;
         }
+
+        UpdateScoreRewardText();
     }
 
-    private void SetTexts(string start, string settings, string exit, string menu, string win, string lose, string reward, string nextLevel,string restart)
+    private void SetTexts(
+        string start,
+        string settings,
+        string exit,
+        string menu,
+        string win,
+        string lose,
+        string reward,
+        string nextLevel,
+        string restart)
     {
         _startText.text = start;
         _settingsText.text = settings;
@@ -95,16 +114,45 @@ public class LocalizationManager : MonoBehaviour
                 txt.text = restart;
         }
     }
+
+    public void SetScoreReward(int reward)
+    {
+        _lastScoreReward = reward;
+        UpdateScoreRewardText();
+    }
+
+    private void UpdateScoreRewardText()
+    {
+        if (_scoreRewardText == null)
+            return;
+
+        switch (YG2.lang)
+        {
+            case "ru":
+                _scoreRewardText.text = $"Набрано очков:+{_lastScoreReward}";
+                break;
+
+            case "tr":
+                _scoreRewardText.text = $"Kazanılan puan:+{_lastScoreReward}";
+                break;
+
+            default:
+                _scoreRewardText.text = $"Scored points:+{_lastScoreReward}";
+                break;
+        }
+    }
+
     private bool Validate()
     {
         if (_startText == null ||
             _settingsText == null ||
             _levelChoiceText == null ||
             _menuText == null ||
-            _winText == null || 
+            _winText == null ||
             _loseText == null ||
             _rewardText == null ||
             _nextLevelText == null ||
+            _scoreRewardText == null ||
             _restartTexts == null ||
             _restartTexts.Count == 0)
         {

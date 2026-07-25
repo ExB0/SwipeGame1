@@ -7,11 +7,16 @@ public class Cell : MonoBehaviour, IClickable
     [SerializeField] private bool _isObstacle;
     [SerializeField] private float _carYOffset = 3f;
 
+    [SerializeField] private MeshRenderer _groundRenderer;
+    [SerializeField] private Material _normalMaterial;
+    [SerializeField] private Material _availableMaterial;
+
     public Vector2Int GridPosition { get; private set; }
     public bool IsReserved { get; private set; }
     public bool IsBlocked => HasCar || IsReserved || _isObstacle;
     public bool HasCar => _currentCar != null;
     public bool IsObstacle => _isObstacle;
+    public Car CurrentCar => _currentCar;
 
     public void Initialize(Vector2Int gridPos) => GridPosition = gridPos;
     public void Reserve() => IsReserved = true;
@@ -46,6 +51,15 @@ public class Cell : MonoBehaviour, IClickable
     public void SetObstacle(bool value)
     {
         _isObstacle = value;
+
+        if (_isObstacle)
+            SetAvailable(false);
+    }
+    public void SetAvailable(bool available)
+    {
+        _groundRenderer.material = available
+            ? _availableMaterial
+            : _normalMaterial;
     }
 
 

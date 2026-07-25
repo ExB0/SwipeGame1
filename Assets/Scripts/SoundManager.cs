@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Audio;
 
 public class SoundManager : MonoBehaviour
 {
@@ -8,6 +9,12 @@ public class SoundManager : MonoBehaviour
 
     [Header("Music Sources")]
     [SerializeField] private List<AudioSource> _musicSources;
+
+    [SerializeField] private AudioSource _winSound;
+
+    [SerializeField] private AudioSource _loseSound;
+
+    [SerializeField] private AudioMixer _audioMixer;
 
     private AudioSource _currentMusic;
 
@@ -19,6 +26,13 @@ public class SoundManager : MonoBehaviour
 
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Debug.LogWarning("SoundManager: дубликат уничтожен");
+            Destroy(gameObject);
+            return;
+        }
+
         Instance = this;
     }
 
@@ -77,8 +91,13 @@ public class SoundManager : MonoBehaviour
 
     public void SetVolume(float value)
     {
+        if (value < 0f || value > 1f)
+        {
+            Debug.LogWarning($"SoundManager: громкость вне диапазона {value}, будет зажата");
+        }
+
         ApplyVolume(value);
-        PlayerPrefs.SetFloat(VolumeKey, value);
+        PlayerPrefs.SetFloat(VolumeKey, Mathf.Clamp01(value));
     }
 
     public void SetMusicEnabled(bool value)
@@ -87,25 +106,63 @@ public class SoundManager : MonoBehaviour
         PlayerPrefs.SetInt(EnabledKey, value ? 1 : 0);
     }
 
+    public void PlayWinSound()
+    {
+        PlayRandomized(_winSound);
+    }
+
+    public void PlayLoseSound()
+    {
+        PlayRandomized(_loseSound);
+    }
     private void ApplyVolume(float value)
     {
-        foreach (var music in _musicSources)
+        if (_audioMixer == null)
         {
-            if (music != null)
-                music.volume = value;
+            Debug.LogError("SoundManager: AudioMixer не назначен!");
+            return;
         }
+
+        if (float.IsNaN(value) || float.IsInfinity(value))
+        {
+            Debug.LogError($"SoundManager: некорректное значение громкости {value}");
+            return;
+        }
+
+        // защита от 0 (иначе Log10 сломается)
+        value = Mathf.Clamp(value, 0.0001f, 1f);
+
+        float db = Mathf.Log10(value) * 20;
+
+        _audioMixer.SetFloat("MusicVolume", db);
+        _audioMixer.SetFloat("SFXVolume", db);
 
         OnVolumeChanged?.Invoke(value);
     }
 
     private void ApplyMute(bool value)
     {
-        foreach (var music in _musicSources)
+        if (_audioMixer == null)
         {
-            if (music != null)
-                music.mute = !value;
+            Debug.LogError("SoundManager: AudioMixer не назначен!");
+            return;
         }
 
+        float db = value ? 0f : -80f;
+
+        _audioMixer.SetFloat("MusicVolume", db);
+        _audioMixer.SetFloat("SFXVolume", db);
+
         OnMuteChanged?.Invoke(value);
+    }
+
+    private void PlayRandomized(AudioSource source)
+    {
+        if (source == null) return;
+
+        source.pitch = UnityEngine.Random.Range(0.95f, 1.05f);
+        source.volume = UnityEngine.Random.Range(0.9f, 1f);
+
+        source.Play();
     }
 }

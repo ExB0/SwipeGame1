@@ -2,27 +2,28 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using YG;
+using Cysharp.Threading.Tasks;
 
 public class AdsManager : MonoBehaviour
 {
-public static AdsManager Instance;
+    public static AdsManager Instance;
 
     [SerializeField] private int _actionCounter = 0;
     [SerializeField] private float _lastAdTime = -999f;
     private bool _isAdShowing;
 
     private const int ACTION_THRESHOLD = 3;
-    private const float COOLDOWN = 30f;
+    private const float COOLDOWN = 60f;
 
     private System.Action _onAdClosed;
 
     private void Awake()
     {
         if (Instance != null && Instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
+        {
+            Destroy(gameObject);
+            return;
+        }
 
         Instance = this;
     }
@@ -43,9 +44,13 @@ public static AdsManager Instance;
         if (Time.time - _lastAdTime < COOLDOWN)
             return false;
 
+        if (!YG2.isTimerAdvCompleted)
+            return false;
+
         _onAdClosed = onClosed;
         ShowAd();
         return true;
+
     }
 
     private void ShowAd()
@@ -61,18 +66,22 @@ public static AdsManager Instance;
 
         YG2.InterstitialAdvShow();
     }
-
-    private void OnAdClosed()
+    private async void OnAdClosed()
     {
         _isAdShowing = false;
 
         PauseGameYG.SetState(1, false, false);
 
+        await UniTask.Yield();
+        await UniTask.DelayFrame(2);
+
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+
         YG2.onCloseInterAdv -= OnAdClosed;
 
         var callback = _onAdClosed;
         _onAdClosed = null;
-
         callback?.Invoke();
     }
 }
