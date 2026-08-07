@@ -1,22 +1,23 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
+
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using YG;
-using Cysharp.Threading.Tasks;
+
 namespace PlatformPuzzle.Managers
 {
     public class AdsManager : MonoBehaviour
     {
+        private const int ActionThreshold = 3;
+        private const float Cooldown = 60f;
+
         public static AdsManager Instance;
 
-        [SerializeField] private int _actionCounter = 0;
+        [SerializeField] private int _actionCounter;
         [SerializeField] private float _lastAdTime = -999f;
+
         private bool _isAdShowing;
-
-        private const int ACTION_THRESHOLD = 3;
-        private const float COOLDOWN = 60f;
-
-        private System.Action _onAdClosed;
+        private Action _onAdClosed;
 
         private void Awake()
         {
@@ -34,24 +35,33 @@ namespace PlatformPuzzle.Managers
             _actionCounter += weight;
         }
 
-        public bool TryShowAd(System.Action onClosed = null)
+        public bool TryShowAd(Action onClosed = null)
         {
             if (_isAdShowing)
+            {
                 return true;
+            }
 
-            if (_actionCounter < ACTION_THRESHOLD)
+            if (_actionCounter < ActionThreshold)
+            {
                 return false;
+            }
 
-            if (Time.time - _lastAdTime < COOLDOWN)
+            if (Time.time - _lastAdTime < Cooldown)
+            {
                 return false;
+            }
 
             if (!YG2.isTimerAdvCompleted)
+            {
                 return false;
+            }
 
             _onAdClosed = onClosed;
-            ShowAd();
-            return true;
 
+            ShowAd();
+
+            return true;
         }
 
         private void ShowAd()
@@ -67,6 +77,7 @@ namespace PlatformPuzzle.Managers
 
             YG2.InterstitialAdvShow();
         }
+
         private async void OnAdClosed()
         {
             _isAdShowing = false;
@@ -81,8 +92,9 @@ namespace PlatformPuzzle.Managers
 
             YG2.onCloseInterAdv -= OnAdClosed;
 
-            var callback = _onAdClosed;
+            Action callback = _onAdClosed;
             _onAdClosed = null;
+
             callback?.Invoke();
         }
     }

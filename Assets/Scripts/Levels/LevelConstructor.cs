@@ -1,9 +1,12 @@
-using UnityEngine;
-using Cysharp.Threading.Tasks;
-using YG;
 using System.Threading;
+
+using Cysharp.Threading.Tasks;
+using UnityEngine;
+using YG;
+
 using PlatformPuzzle.Managers;
 using PlatformPuzzle.UI;
+
 namespace PlatformPuzzle.Levels
 {
     public class LevelConstructor : MonoBehaviour
@@ -27,15 +30,15 @@ namespace PlatformPuzzle.Levels
         [SerializeField] private AdsManager _adsManager;
         [SerializeField] private LocalizationManager _localizationManager;
 
-
-        private bool _isMenuPressed = false;
+        private bool _isMenuPressed;
         private bool _isLoseTriggered;
-        private int _currentLevelIndex = 0;
-        private bool _isWinTriggered = false;
+        private int _currentLevelIndex;
+        private bool _isWinTriggered;
         private CancellationTokenSource _levelCts;
         private int _lastLevelReward;
 
-        public CancellationToken LevelToken => _levelCts?.Token ?? CancellationToken.None;
+        public CancellationToken LevelToken =>
+            _levelCts?.Token ?? CancellationToken.None;
 
         private void Awake()
         {
@@ -44,7 +47,9 @@ namespace PlatformPuzzle.Levels
                 Destroy(gameObject);
                 return;
             }
+
             Instance = this;
+
             _levelsWindow.SetActive(false);
             _menuButtonWindow.SetActive(false);
             _reloadbuttonWindow.SetActive(false);
@@ -54,8 +59,11 @@ namespace PlatformPuzzle.Levels
         private void Start()
         {
             _adsManager = AdsManager.Instance;
+
             if (_levelTimer != null)
+            {
                 _levelTimer.OnTimeExpired += OnTimeExpired;
+            }
         }
 
         public void LoadLevel(int levelIndex)
@@ -68,24 +76,38 @@ namespace PlatformPuzzle.Levels
 
             Time.timeScale = 1f;
             _isMenuPressed = false;
+
             CancelLevelToken();
             ClearLevel();
             CreateLevelToken();
 
             _currentLevelIndex = levelIndex;
+
             LevelData levelData = _levels[_currentLevelIndex];
 
-            if (!ValidateLevelData(levelData)) return;
+            if (!ValidateLevelData(levelData))
+            {
+                return;
+            }
 
-            if (_loseWindow != null) _loseWindow.SetActive(false);
-            if (_menuWindow != null) _menuWindow.SetActive(false);
+            if (_loseWindow != null)
+            {
+                _loseWindow.SetActive(false);
+            }
+
+            if (_menuWindow != null)
+            {
+                _menuWindow.SetActive(false);
+            }
+
             _levelsWindow.SetActive(false);
             _menuButtonWindow.SetActive(true);
             _reloadbuttonWindow.SetActive(true);
             _winWindow.SetActive(false);
 
-            ApplyGridSettings(levelData);
+            ApplyGridSettings();
             SpawnCars(levelData);
+
             _gridManager.BuildObstacles();
 
             for (int i = 0; i < _spawners.Length; i++)
@@ -93,7 +115,11 @@ namespace PlatformPuzzle.Levels
                 ApplySpawner(levelData, i);
             }
 
-            if (_levelTimer != null) _levelTimer.ShowTimer();
+            if (_levelTimer != null)
+            {
+                _levelTimer.ShowTimer();
+            }
+
             _startTextController.ShowIfFirstLevel(levelIndex).Forget();
             SoundManager.Instance.ResumeMusic();
         }
@@ -102,6 +128,7 @@ namespace PlatformPuzzle.Levels
         {
             float remainingTime = 0f;
             bool wasUnlimited = false;
+
             if (_levelTimer != null)
             {
                 remainingTime = _levelTimer.RemainingTime;
@@ -109,10 +136,15 @@ namespace PlatformPuzzle.Levels
             }
 
             LoadLevel(_currentLevelIndex);
+
             Cursor.visible = true;
             Cursor.lockState = CursorLockMode.None;
 
-            if (_levelTimer == null) return;
+            if (_levelTimer == null)
+            {
+                return;
+            }
+
             if (wasUnlimited)
             {
                 _levelTimer.DisableLimit();
@@ -120,34 +152,11 @@ namespace PlatformPuzzle.Levels
             }
             else if (remainingTime > 0f)
             {
-                _levelTimer.StartTimer(remainingTime, LevelToken);
+                _levelTimer.StartTimer(
+                    remainingTime,
+                    LevelToken
+                );
             }
-        }
-
-        private void SpawnCars(LevelData level)
-        {
-            foreach (var carData in level.Cars)
-            {
-                _gridManager.SpawnCarAt(carData.GridPosition, carData.UnitType, carData.Color);
-            }
-        }
-
-        private void ApplySpawner(LevelData level, int spawnerIndex)
-        {
-            if (spawnerIndex < 0 || spawnerIndex >= _spawners.Length) return;
-            if (spawnerIndex >= level.Spawners.Count)
-            {
-                Debug.LogWarning($"No data for spawner {spawnerIndex}");
-                return;
-            }
-
-            _spawners[spawnerIndex].SetPeopleQueue(level.Spawners[spawnerIndex].People);
-            _spawners[spawnerIndex].ResetSpawner();
-        }
-
-        private void ApplyGridSettings(LevelData level)
-        {
-            _gridManager.RebuildGrid();
         }
 
         public void ShowWinWindow()
@@ -158,7 +167,9 @@ namespace PlatformPuzzle.Levels
             _reloadbuttonWindow.SetActive(false);
 
             if (_localizationManager != null)
+            {
                 _localizationManager.SetScoreReward(_lastLevelReward);
+            }
 
             _winWindow.SetActive(true);
 
@@ -166,25 +177,37 @@ namespace PlatformPuzzle.Levels
             SoundManager.Instance.PlayWinSound();
         }
 
-
         public void ShowMenuWindow()
         {
-            if (_isLoseTriggered) return;
+            if (_isLoseTriggered)
+            {
+                return;
+            }
+
             _isMenuPressed = !_isMenuPressed;
+
             _startTextController.HideText();
             SetPause(_isMenuPressed);
+
             _menuWindow.SetActive(_isMenuPressed);
 
             if (_levelTimer != null)
             {
-                if (_isMenuPressed) _levelTimer.HideTimer();
-                else _levelTimer.ShowTimer();
+                if (_isMenuPressed)
+                {
+                    _levelTimer.HideTimer();
+                }
+                else
+                {
+                    _levelTimer.ShowTimer();
+                }
             }
         }
 
         public void LoadNextLevel()
         {
             int nextLevelIndex = _currentLevelIndex + 1;
+
             if (nextLevelIndex >= _levels.Length)
             {
                 Debug.Log("No more levels!");
@@ -192,8 +215,12 @@ namespace PlatformPuzzle.Levels
             }
 
             _adsManager.RegisterAction(2);
-            if (_adsManager.TryShowAd(() => { LoadLevelWithTimerReset(nextLevelIndex); }))
+
+            if (_adsManager.TryShowAd(
+                    () => LoadLevelWithTimerReset(nextLevelIndex)))
+            {
                 return;
+            }
 
             LoadLevelWithTimerReset(nextLevelIndex);
         }
@@ -203,7 +230,9 @@ namespace PlatformPuzzle.Levels
             _adsManager.RegisterAction(1);
 
             if (_adsManager.TryShowAd(RestartCurrentLevelKeepTimer))
+            {
                 return;
+            }
 
             RestartCurrentLevelKeepTimer();
         }
@@ -211,48 +240,78 @@ namespace PlatformPuzzle.Levels
         public void BackToMainMenu()
         {
             CancelLevelToken();
+
             _mainMenuWindow.SetActive(true);
             _levelsWindow.SetActive(false);
             _winWindow.SetActive(false);
             _menuWindow.SetActive(false);
             _menuButtonWindow.SetActive(false);
             _reloadbuttonWindow.SetActive(false);
+
             Time.timeScale = 1f;
             _isMenuPressed = false;
+
             _startTextController.HideText();
             ClearLevel();
         }
 
         public void CheckWinCondition()
         {
-            if (_isWinTriggered || _isLoseTriggered) return;
-
-            foreach (var spawner in _spawners)
+            if (_isWinTriggered || _isLoseTriggered)
             {
-                if (!spawner.IsFinished()) return;
+                return;
             }
 
-            if (_gridManager.HasActiveCars()) return;
-            if (_roadManager.HasCars()) return;
+            foreach (Spawner spawner in _spawners)
+            {
+                if (!spawner.IsFinished())
+                {
+                    return;
+                }
+            }
+
+            if (_gridManager.HasActiveCars())
+            {
+                return;
+            }
+
+            if (_roadManager.HasCars())
+            {
+                return;
+            }
 
             _isWinTriggered = true;
+
             _levelTimer?.StopAndHide();
+
             OnLevelCompleted();
             ShowWinWindow();
         }
 
         public void ContinueAfterRewardAd()
         {
-            if (!_isLoseTriggered) return;
-            YG2.RewardedAdvShow("SecondChance", ApplySecondChance);
+            if (!_isLoseTriggered)
+            {
+                return;
+            }
+
+            YG2.RewardedAdvShow(
+                "SecondChance",
+                ApplySecondChance
+            );
+
             SoundManager.Instance.ResumeMusic();
         }
 
         public void RestartAfterLose()
         {
             _adsManager.RegisterAction(1);
-            if (_adsManager.TryShowAd(() => LoadLevelWithTimerReset(_currentLevelIndex)))
+
+            if (_adsManager.TryShowAd(
+                    () => LoadLevelWithTimerReset(_currentLevelIndex)))
+            {
                 return;
+            }
 
             LoadLevelWithTimerReset(_currentLevelIndex);
         }
@@ -264,21 +323,70 @@ namespace PlatformPuzzle.Levels
                 Debug.LogError("Invalid level index!");
                 return;
             }
+
             LoadLevel(levelIndex);
+
             LevelData levelData = _levels[levelIndex];
             StartLevelTimer(levelData);
         }
+
         public void LoadCurrentLevelWithTimerReset()
         {
             int levelIndex = _currentLevelIndex;
+
             if (levelIndex < 0 || levelIndex >= _levels.Length)
             {
                 Debug.LogError("Invalid level index!");
                 return;
             }
+
             LoadLevel(levelIndex);
+
             LevelData levelData = _levels[levelIndex];
             StartLevelTimer(levelData);
+        }
+
+        private void SpawnCars(LevelData level)
+        {
+            foreach (CarSpawnData carData in level.Cars)
+            {
+                _gridManager.SpawnCarAt(
+                    carData.GridPosition,
+                    carData.UnitType,
+                    carData.Color
+                );
+            }
+        }
+
+        private void ApplySpawner(
+            LevelData level,
+            int spawnerIndex)
+        {
+            if (spawnerIndex < 0 ||
+                spawnerIndex >= _spawners.Length)
+            {
+                return;
+            }
+
+            if (spawnerIndex >= level.Spawners.Count)
+            {
+                Debug.LogWarning(
+                    $"No data for spawner {spawnerIndex}"
+                );
+
+                return;
+            }
+
+            _spawners[spawnerIndex].SetPeopleQueue(
+                level.Spawners[spawnerIndex].People
+            );
+
+            _spawners[spawnerIndex].ResetSpawner();
+        }
+
+        private void ApplyGridSettings()
+        {
+            _gridManager.RebuildGrid();
         }
 
         private void OnLevelCompleted()
@@ -293,10 +401,16 @@ namespace PlatformPuzzle.Levels
             if (data.TotalScore > data.BestScore)
             {
                 data.BestScore = data.TotalScore;
-                YG2.SetLeaderboard("LeaderBoardYG", data.BestScore);
+
+                YG2.SetLeaderboard(
+                    "LeaderBoardYG",
+                    data.BestScore
+                );
 
                 if (_leaderboardYG != null)
+                {
                     _leaderboardYG.UpdateLB();
+                }
             }
 
             if (_currentLevelIndex >= data.UnlockedLevel)
@@ -307,7 +421,6 @@ namespace PlatformPuzzle.Levels
             SaveSystem.Save(data);
         }
 
-
         private void SetPause(bool isPaused)
         {
             Time.timeScale = isPaused ? 0f : 1f;
@@ -317,9 +430,11 @@ namespace PlatformPuzzle.Levels
         {
             _isWinTriggered = false;
             _isLoseTriggered = false;
+
             _gridManager.ClearGrid();
             _roadManager.ClearCars();
-            foreach (var spawner in _spawners)
+
+            foreach (Spawner spawner in _spawners)
             {
                 spawner.ClearSpawner();
             }
@@ -329,6 +444,7 @@ namespace PlatformPuzzle.Levels
         {
             _levelCts?.Cancel();
             _levelCts?.Dispose();
+
             _levelCts = new CancellationTokenSource();
         }
 
@@ -336,6 +452,7 @@ namespace PlatformPuzzle.Levels
         {
             _levelCts?.Cancel();
             _levelCts?.Dispose();
+
             _levelCts = null;
         }
 
@@ -346,49 +463,75 @@ namespace PlatformPuzzle.Levels
                 Debug.LogError("LevelData is null");
                 return false;
             }
+
             if (level.Cars == null)
             {
                 Debug.LogError("LevelData.Cars is null");
                 return false;
             }
+
             if (level.Spawners == null)
             {
                 Debug.LogError("LevelData.Spawners is null");
                 return false;
             }
 
-            foreach (var car in level.Cars)
+            foreach (CarSpawnData car in level.Cars)
             {
                 if (!_gridManager.IsCellExists(car.GridPosition))
                 {
-                    Debug.LogError($"Car position {car.GridPosition} is outside grid");
+                    Debug.LogError(
+                        $"Car position {car.GridPosition} is outside grid"
+                    );
+
                     return false;
                 }
-                var cell = _gridManager.GetCell(car.GridPosition);
+
+                Cell cell = _gridManager.GetCell(car.GridPosition);
+
                 if (cell == null)
                 {
-                    Debug.LogError($"Cell at {car.GridPosition} is null");
+                    Debug.LogError(
+                        $"Cell at {car.GridPosition} is null"
+                    );
+
                     return false;
                 }
             }
 
             if (level.Spawners.Count > _spawners.Length)
             {
-                Debug.LogError($"Level has {level.Spawners.Count} spawners, but scene has only {_spawners.Length}");
+                Debug.LogError(
+                    $"Level has {level.Spawners.Count} spawners, " +
+                    $"but scene has only {_spawners.Length}"
+                );
+
                 return false;
             }
+
             return true;
         }
 
         private void OnTimeExpired()
         {
-            if (_isWinTriggered || _isLoseTriggered) return;
+            if (_isWinTriggered || _isLoseTriggered)
+            {
+                return;
+            }
+
             _isLoseTriggered = true;
+
             _levelTimer?.StopAndHide();
+
             Time.timeScale = 0f;
+
             _menuButtonWindow.SetActive(false);
             _reloadbuttonWindow.SetActive(false);
-            if (_loseWindow != null) _loseWindow.SetActive(true);
+
+            if (_loseWindow != null)
+            {
+                _loseWindow.SetActive(true);
+            }
 
             SoundManager.Instance.PauseMusic();
             SoundManager.Instance.PlayLoseSound();
@@ -397,11 +540,19 @@ namespace PlatformPuzzle.Levels
         private async void ApplySecondChance()
         {
             _isLoseTriggered = false;
-            if (_loseWindow != null) _loseWindow.SetActive(false);
+
+            if (_loseWindow != null)
+            {
+                _loseWindow.SetActive(false);
+            }
+
             _menuButtonWindow.SetActive(true);
             _reloadbuttonWindow.SetActive(true);
+
             await UniTask.Yield();
+
             Time.timeScale = 1f;
+
             if (_levelTimer != null)
             {
                 _levelTimer.DisableLimit();
@@ -411,15 +562,25 @@ namespace PlatformPuzzle.Levels
 
         private void StartLevelTimer(LevelData levelData)
         {
-            if (_levelTimer == null) return;
-            _levelTimer.StartTimer(levelData.TimeLimitSeconds, LevelToken);
+            if (_levelTimer == null)
+            {
+                return;
+            }
+
+            _levelTimer.StartTimer(
+                levelData.TimeLimitSeconds,
+                LevelToken
+            );
         }
 
         private void OnDestroy()
         {
-            if (_levelTimer != null) _levelTimer.OnTimeExpired -= OnTimeExpired;
+            if (_levelTimer != null)
+            {
+                _levelTimer.OnTimeExpired -= OnTimeExpired;
+            }
+
             CancelLevelToken();
         }
-
     }
 }

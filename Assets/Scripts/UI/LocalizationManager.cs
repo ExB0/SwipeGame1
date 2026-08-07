@@ -1,7 +1,8 @@
 using System.Collections.Generic;
-using UnityEngine;
 using TMPro;
+using UnityEngine;
 using YG;
+
 namespace PlatformPuzzle.UI
 {
     public class LocalizationManager : MonoBehaviour
@@ -34,12 +35,17 @@ namespace PlatformPuzzle.UI
         private void Start()
         {
             if (!string.IsNullOrEmpty(YG2.lang))
+            {
                 UpdateLanguage(YG2.lang);
+            }
         }
 
         private void UpdateLanguage(string lang)
         {
-            if (!Validate()) return;
+            if (!Validate())
+            {
+                return;
+            }
 
             switch (lang)
             {
@@ -53,8 +59,7 @@ namespace PlatformPuzzle.UI
                         "Время истекло",
                         "Посмотрите рекламу, чтобы продолжить",
                         "Следующий уровень",
-                        "Заново"
-                    );
+                        "Заново");
                     break;
 
                 case "tr":
@@ -67,8 +72,7 @@ namespace PlatformPuzzle.UI
                         "Süre bitti",
                         "Devam etmek için reklamı izleyin",
                         "Sonraki seviye",
-                        "Yeniden"
-                    );
+                        "Yeniden");
                     break;
 
                 default:
@@ -81,8 +85,7 @@ namespace PlatformPuzzle.UI
                         "Time is over",
                         "Watch the AD to continue",
                         "Next Level",
-                        "Again"
-                    );
+                        "Again");
                     break;
             }
 
@@ -109,10 +112,12 @@ namespace PlatformPuzzle.UI
             _rewardText.text = reward;
             _nextLevelText.text = nextLevel;
 
-            foreach (var txt in _restartTexts)
+            foreach (TMP_Text txt in _restartTexts)
             {
                 if (txt != null)
+                {
                     txt.text = restart;
+                }
             }
         }
 
@@ -125,7 +130,9 @@ namespace PlatformPuzzle.UI
         private void UpdateScoreRewardText()
         {
             if (_scoreRewardText == null)
+            {
                 return;
+            }
 
             switch (YG2.lang)
             {
@@ -166,19 +173,31 @@ namespace PlatformPuzzle.UI
 
         public void SetRU()
         {
-            if (YG2.lang == "ru") return;
+            if (YG2.lang == "ru")
+            {
+                return;
+            }
+
             YG2.SwitchLanguage("ru");
         }
 
         public void SetEN()
         {
-            if (YG2.lang == "en") return;
+            if (YG2.lang == "en")
+            {
+                return;
+            }
+
             YG2.SwitchLanguage("en");
         }
 
         public void SetTR()
         {
-            if (YG2.lang == "tr") return;
+            if (YG2.lang == "tr")
+            {
+                return;
+            }
+
             YG2.SwitchLanguage("tr");
         }
     }

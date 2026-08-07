@@ -1,6 +1,5 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+
 namespace PlatformPuzzle.UI
 {
     public class PlayUI : MonoBehaviour
@@ -16,10 +15,12 @@ namespace PlatformPuzzle.UI
 
         private void HideAll()
         {
-            foreach (var window in _hideWindows)
+            foreach (GameObject window in _hideWindows)
             {
                 if (window != null)
+                {
                     window.SetActive(false);
+                }
             }
         }
     }

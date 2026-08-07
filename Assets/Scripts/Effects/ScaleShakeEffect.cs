@@ -1,14 +1,13 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class ScaleShakeEffect : MonoBehaviour
 {
     public bool IsShaking { get; private set; }
 
-    [SerializeField] private float _scaleMultiplier = 1.2f; 
-    [SerializeField] private float _duration = 0.3f;        
-    [SerializeField] private float _shakeAmount = 0.05f;    
+    [SerializeField] private float _scaleMultiplier = 1.2f;
+    [SerializeField] private float _duration = 0.3f;
+    [SerializeField] private float _shakeAmount = 0.05f;
 
     private Vector3 _originalScale;
     private Vector3 _originalPosition;
@@ -22,7 +21,10 @@ public class ScaleShakeEffect : MonoBehaviour
 
     public void Shake()
     {
-        if (IsShaking) return;
+        if (IsShaking)
+        {
+            return;
+        }
 
         StopAllCoroutines();
         StartCoroutine(ShakeEffect());

@@ -2,14 +2,24 @@ using UnityEngine;
 
 namespace Units
 {
-    public enum UnitType { Car, Person }
-    public enum UnitColor { Red, Green, Blue }
+    public enum UnitType
+    {
+        Car,
+        Person
+    }
+
+    public enum UnitColor
+    {
+        Red,
+        Green,
+        Blue
+    }
 
     [System.Serializable]
     public struct UnitPrefabEntry
     {
-        public UnitType unitType;
-        public UnitColor unitColor;
-        public GameObject prefab;
+        public UnitType UnitType;
+        public UnitColor UnitColor;
+        public GameObject Prefab;
     }
 }

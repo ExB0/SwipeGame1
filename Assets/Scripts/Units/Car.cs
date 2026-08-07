@@ -1,15 +1,14 @@
-using UnityEngine;
-using Cysharp.Threading.Tasks;
-using UnityEngine.Splines;
 using System.Collections.Generic;
 using System.Threading;
+using Cysharp.Threading.Tasks;
 using PlatformPuzzle.Levels;
 using PlatformPuzzle.Managers;
 using PlatformPuzzle.Pathfinder;
+using UnityEngine;
+using UnityEngine.Splines;
 
 namespace Units
 {
-
     [RequireComponent(typeof(Rigidbody))]
     public class Car : MonoBehaviour, IColorMatchable
     {
@@ -24,10 +23,6 @@ namespace Units
 
         [SerializeField] private AudioSource _engineStartAudio;
 
-        public Color GetColor() => _color;
-        public bool IsMoving => _isMoving;
-
-
         private LevelConstructor _levelConstructor;
         private Transform _roadPoint;
         private Rigidbody _rigidbody;
@@ -40,6 +35,9 @@ namespace Units
         private bool _leaving = false;
         private CancellationToken _levelToken;
 
+        public Color GetColor() => _color;
+        public bool IsMoving => _isMoving;
+
         private void Awake()
         {
             _rigidbody = GetComponent<Rigidbody>();
@@ -47,25 +45,36 @@ namespace Units
             _splineAnimator = GetComponent<SplineAnimate>();
             _scaleShakeEffect = GetComponent<ScaleShakeEffect>();
 
-            var renderer = GetComponent<MeshRenderer>();
+            MeshRenderer renderer = GetComponent<MeshRenderer>();
             if (renderer != null)
+            {
                 _color = renderer.material.color;
+            }
             else
+            {
                 Debug.LogError($"{name}: MeshRenderer not found");
+            }
 
             if (_splineAnimator == null)
+            {
                 Debug.LogError($"{name}: SplineAnimate not found");
+            }
 
             if (_scaleShakeEffect == null)
+            {
                 Debug.LogError($"{name}: ScaleShakeEffect not found");
+            }
 
             if (_smoke == null)
+            {
                 Debug.LogWarning($"{name}: smoke particle is missing");
+            }
 
             if (_passengers == null)
+            {
                 Debug.LogWarning($"{name}: passengers array is null");
+            }
         }
-
 
         private void Start()
         {
@@ -74,30 +83,42 @@ namespace Units
             _levelConstructor = LevelConstructor.Instance;
 
             if (_gridManager == null)
+            {
                 Debug.LogError($"{name}: GridManager not found");
+            }
 
             if (_roadManager == null)
+            {
                 Debug.LogError($"{name}: RoadManager not found");
+            }
 
             if (_levelConstructor != null)
+            {
                 _levelToken = _levelConstructor.LevelToken;
+            }
 
             if (_smoke != null)
+            {
                 _smoke.Stop();
+            }
         }
-
-
 
         public void OnClick()
         {
             if (_gridManager == null || _roadManager == null)
+            {
                 return;
+            }
 
             if (_scaleShakeEffect != null && _scaleShakeEffect.IsShaking)
+            {
                 return;
+            }
 
             if (_isMoving)
+            {
                 return;
+            }
 
             if (_roadManager.IsRoadFull())
             {
@@ -107,12 +128,15 @@ namespace Units
 
             UniTask.Void(async () => await HandleClick());
         }
+
         private async UniTask HandleClick()
         {
             Cell currentCell = GetCurrentCell();
 
             if (currentCell == null)
+            {
                 return;
+            }
 
             if (!TryGetPathToExit(currentCell, out List<Vector2Int> path))
             {
@@ -141,12 +165,13 @@ namespace Units
 
             await MoveAlongPath(path);
         }
+
         private Cell FindClosestExit(Vector2Int startPos, List<Cell> exitCells)
         {
             Cell bestExit = exitCells[0];
             float bestDistance = Vector2Int.Distance(startPos, bestExit.GridPosition);
 
-            foreach (var exit in exitCells)
+            foreach (Cell exit in exitCells)
             {
                 float dist = Vector2Int.Distance(startPos, exit.GridPosition);
                 if (dist < bestDistance)
@@ -155,6 +180,7 @@ namespace Units
                     bestExit = exit;
                 }
             }
+
             return bestExit;
         }
 
@@ -180,11 +206,15 @@ namespace Units
 
         public void SetSpline(SplineContainer splineContainer)
         {
-            if (_splineAnimator == null) return;
+            if (_splineAnimator == null)
+            {
+                return;
+            }
 
             _splineAnimator.enabled = false;
             _splineAnimator.Container = splineContainer;
         }
+
         public bool CanMoveFrom(Cell currentCell)
         {
             return TryGetPathToExit(currentCell, out _);
@@ -194,7 +224,7 @@ namespace Units
 
         private async UniTask MoveAlongPath(List<Vector2Int> path)
         {
-            var token = this.GetCancellationTokenOnDestroy();
+            CancellationToken token = this.GetCancellationTokenOnDestroy();
 
             PlayEngineSound();
 
@@ -205,7 +235,10 @@ namespace Units
                 token.ThrowIfCancellationRequested();
 
                 Cell nextCell = _gridManager.GetCell(nextCellPos);
-                if (nextCell == null) continue;
+                if (nextCell == null)
+                {
+                    continue;
+                }
 
                 while (nextCell.IsBlocked)
                 {
@@ -250,15 +283,21 @@ namespace Units
             GridManager grid = GridManager.Instance;
 
             if (grid == null)
+            {
                 return false;
+            }
 
             if (currentCell == null)
+            {
                 return false;
+            }
 
             List<Cell> exitCells = grid.GetExitCells();
 
             if (exitCells == null || exitCells.Count == 0)
+            {
                 return false;
+            }
 
             if (exitCells.Contains(currentCell))
             {
@@ -269,18 +308,21 @@ namespace Units
             Cell bestExit = null;
             List<Vector2Int> bestPath = null;
 
-            foreach (var exit in exitCells)
+            foreach (Cell exit in exitCells)
             {
                 if (exit == null)
+                {
                     continue;
+                }
 
                 List<Vector2Int> candidatePath = _pathFinder.FindPath(
                     currentCell.GridPosition,
-                    exit.GridPosition
-                );
+                    exit.GridPosition);
 
                 if (candidatePath == null || candidatePath.Count == 0)
+                {
                     continue;
+                }
 
                 if (bestPath == null || candidatePath.Count < bestPath.Count)
                 {
@@ -296,7 +338,7 @@ namespace Units
 
         private async UniTask PlaySplineAnimator()
         {
-            var token = this.GetCancellationTokenOnDestroy();
+            CancellationToken token = this.GetCancellationTokenOnDestroy();
 
             if (_splineAnimator != null && _splineAnimator.Container != null)
             {
@@ -322,9 +364,12 @@ namespace Units
             float minDist = float.MaxValue;
             Cell closestCell = null;
 
-            foreach (var cell in _gridManager.GetAllCells())
+            foreach (Cell cell in _gridManager.GetAllCells())
             {
-                if (cell == null) continue;
+                if (cell == null)
+                {
+                    continue;
+                }
 
                 float dist = Vector3.Distance(transform.position, cell.transform.position);
                 if (dist < minDist)
@@ -333,12 +378,13 @@ namespace Units
                     closestCell = cell;
                 }
             }
+
             return closestCell;
         }
 
         private async UniTask MoveToPosition(Vector3 targetPosition)
         {
-            var token = this.GetCancellationTokenOnDestroy();
+            CancellationToken token = this.GetCancellationTokenOnDestroy();
 
             if (Vector3.Distance(transform.position, targetPosition) <= _reachedDistance)
             {
@@ -352,7 +398,10 @@ namespace Units
                 Vector3 direction = targetPosition - transform.position;
                 float distance = direction.magnitude;
 
-                if (distance <= _reachedDistance) break;
+                if (distance <= _reachedDistance)
+                {
+                    break;
+                }
 
                 if (distance > 0.5f)
                 {
@@ -362,14 +411,13 @@ namespace Units
                     _rigidbody.MoveRotation(Quaternion.Slerp(
                         _rigidbody.rotation,
                         targetRotation,
-                        Time.deltaTime * _rotationSpeed
-                    ));
+                        Time.deltaTime * _rotationSpeed));
                 }
+
                 _rigidbody.MovePosition(Vector3.MoveTowards(
                     transform.position,
                     targetPosition,
-                    _moveSpeed * Time.deltaTime
-                ));
+                    _moveSpeed * Time.deltaTime));
 
                 await UniTask.Yield();
             }
@@ -377,7 +425,7 @@ namespace Units
 
         private async UniTask LeaveSpline()
         {
-            var token = this.GetCancellationTokenOnDestroy();
+            CancellationToken token = this.GetCancellationTokenOnDestroy();
 
             _splineAnimator.enabled = false;
             _rigidbody.isKinematic = false;
@@ -392,8 +440,7 @@ namespace Units
                 _rigidbody.MovePosition(Vector3.MoveTowards(
                     transform.position,
                     targetPosition,
-                    _moveSpeed * Time.deltaTime
-                ));
+                    _moveSpeed * Time.deltaTime));
 
                 await UniTask.Yield(token);
             }
@@ -406,7 +453,10 @@ namespace Units
 
         private void CheckAfterCircle()
         {
-            if (_leaving) return;
+            if (_leaving)
+            {
+                return;
+            }
 
             if (_seats <= 0)
             {
@@ -420,6 +470,7 @@ namespace Units
                 PlaySplineAnimator().Forget();
             }
         }
+
         private void PlayEngineSound()
         {
             if (_engineStartAudio != null)

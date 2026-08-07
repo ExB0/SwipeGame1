@@ -1,6 +1,5 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+
 namespace PlatformPuzzle.UI
 {
     public class SettingsUI : MonoBehaviour
@@ -20,10 +19,12 @@ namespace PlatformPuzzle.UI
 
         private void SetActive(GameObject[] objects, bool state)
         {
-            foreach (var obj in objects)
+            foreach (GameObject obj in objects)
             {
                 if (obj != null)
+                {
                     obj.SetActive(state);
+                }
             }
         }
     }

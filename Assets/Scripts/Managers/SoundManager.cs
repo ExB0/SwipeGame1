@@ -1,30 +1,29 @@
 using System;
 using System.Collections.Generic;
+
 using UnityEngine;
 using UnityEngine.Audio;
+
 namespace PlatformPuzzle.Managers
 {
-
     public class SoundManager : MonoBehaviour
     {
+        private const string VolumeKey = "MusicVolume";
+        private const string EnabledKey = "MusicEnabled";
+
         public static SoundManager Instance;
 
         [Header("Music Sources")]
         [SerializeField] private List<AudioSource> _musicSources;
 
         [SerializeField] private AudioSource _winSound;
-
         [SerializeField] private AudioSource _loseSound;
-
         [SerializeField] private AudioMixer _audioMixer;
 
         private AudioSource _currentMusic;
 
         public event Action<float> OnVolumeChanged;
         public event Action<bool> OnMuteChanged;
-
-        private const string VolumeKey = "MusicVolume";
-        private const string EnabledKey = "MusicEnabled";
 
         private void Awake()
         {
@@ -52,20 +51,31 @@ namespace PlatformPuzzle.Managers
         {
             if (index < 0 || index >= _musicSources.Count)
             {
-                Debug.LogError($"SoundManager: invalid music index {index}");
+                Debug.LogError(
+                    $"SoundManager: invalid music index {index}"
+                );
+
                 return;
             }
 
-            var target = _musicSources[index];
+            AudioSource target = _musicSources[index];
 
-            if (target == null) return;
+            if (target == null)
+            {
+                return;
+            }
 
             if (_currentMusic == target)
-                return;
-
-            foreach (var music in _musicSources)
             {
-                if (music == null) continue;
+                return;
+            }
+
+            foreach (AudioSource music in _musicSources)
+            {
+                if (music == null)
+                {
+                    continue;
+                }
 
                 if (music == target)
                 {
@@ -82,20 +92,26 @@ namespace PlatformPuzzle.Managers
         public void PauseMusic()
         {
             if (_currentMusic != null && _currentMusic.isPlaying)
+            {
                 _currentMusic.Pause();
+            }
         }
 
         public void ResumeMusic()
         {
             if (_currentMusic != null)
+            {
                 _currentMusic.UnPause();
+            }
         }
 
         public void SetVolume(float value)
         {
             if (value < 0f || value > 1f)
             {
-                Debug.LogWarning($"SoundManager: громкость вне диапазона {value}, будет зажата");
+                Debug.LogWarning(
+                    $"SoundManager: громкость вне диапазона {value}, будет зажата"
+                );
             }
 
             ApplyVolume(value);
@@ -117,6 +133,7 @@ namespace PlatformPuzzle.Managers
         {
             PlayRandomized(_loseSound);
         }
+
         private void ApplyVolume(float value)
         {
             if (_audioMixer == null)
@@ -127,11 +144,13 @@ namespace PlatformPuzzle.Managers
 
             if (float.IsNaN(value) || float.IsInfinity(value))
             {
-                Debug.LogError($"SoundManager: некорректное значение громкости {value}");
+                Debug.LogError(
+                    $"SoundManager: некорректное значение громкости {value}"
+                );
+
                 return;
             }
 
-            // защита от 0 (иначе Log10 сломается)
             value = Mathf.Clamp(value, 0.0001f, 1f);
 
             float db = Mathf.Log10(value) * 20;
@@ -160,7 +179,10 @@ namespace PlatformPuzzle.Managers
 
         private void PlayRandomized(AudioSource source)
         {
-            if (source == null) return;
+            if (source == null)
+            {
+                return;
+            }
 
             source.pitch = UnityEngine.Random.Range(0.95f, 1.05f);
             source.volume = UnityEngine.Random.Range(0.9f, 1f);

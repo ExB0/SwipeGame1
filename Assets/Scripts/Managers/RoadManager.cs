@@ -1,5 +1,5 @@
-using UnityEngine;
 using Cysharp.Threading.Tasks;
+using UnityEngine;
 using Units;
 
 namespace PlatformPuzzle.Managers
@@ -12,6 +12,7 @@ namespace PlatformPuzzle.Managers
         private async void Start()
         {
             await UniTask.Yield();
+
             UpdateCells();
         }
 
@@ -23,14 +24,18 @@ namespace PlatformPuzzle.Managers
         public void AddCar()
         {
             _currentCarsNumber++;
+
             UpdateCells();
         }
 
         public void RemoveCar()
         {
             _currentCarsNumber--;
+
             if (_currentCarsNumber < 0)
+            {
                 _currentCarsNumber = 0;
+            }
 
             UpdateCells();
         }
@@ -38,6 +43,7 @@ namespace PlatformPuzzle.Managers
         public void ClearCars()
         {
             _currentCarsNumber = 0;
+
             UpdateCells();
         }
 
@@ -51,12 +57,16 @@ namespace PlatformPuzzle.Managers
             GridManager grid = GridManager.Instance;
 
             if (grid == null)
+            {
                 return;
+            }
 
-            foreach (var cell in grid.GetAllCells())
+            foreach (Cell cell in grid.GetAllCells())
             {
                 if (cell == null)
+                {
                     continue;
+                }
 
                 if (!cell.HasCar)
                 {
@@ -78,9 +88,7 @@ namespace PlatformPuzzle.Managers
                     continue;
                 }
 
-                bool canMove =
-                    !IsRoadFull() &&
-                    car.CanMoveFrom(cell);
+                bool canMove = !IsRoadFull() && car.CanMoveFrom(cell);
 
                 cell.SetAvailable(canMove);
             }

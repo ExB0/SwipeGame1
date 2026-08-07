@@ -1,6 +1,7 @@
+using PlatformPuzzle.Managers;
 using UnityEngine;
 using UnityEngine.UI;
-using PlatformPuzzle.Managers;
+
 namespace PlatformPuzzle.UI
 {
     public class SoundSettingsUI : MonoBehaviour
@@ -25,7 +26,10 @@ namespace PlatformPuzzle.UI
 
         private void OnDestroy()
         {
-            if (SoundManager.Instance == null) return;
+            if (SoundManager.Instance == null)
+            {
+                return;
+            }
 
             SoundManager.Instance.OnVolumeChanged -= UpdateSlider;
             SoundManager.Instance.OnMuteChanged -= UpdateToggle;

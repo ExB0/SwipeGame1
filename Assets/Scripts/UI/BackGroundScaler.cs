@@ -1,11 +1,11 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+
 namespace PlatformPuzzle.UI
 {
     public class BackGroundScaler : MonoBehaviour
     {
-        [SerializeField] SpriteRenderer _spriteRenderer;
+        [SerializeField] private SpriteRenderer _spriteRenderer;
+
         private void Start()
         {
             FitToCamera();

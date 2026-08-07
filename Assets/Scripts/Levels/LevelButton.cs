@@ -1,10 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+
 namespace PlatformPuzzle.Levels
 {
-
     public class LevelButton : MonoBehaviour
     {
         [SerializeField] private int _levelIndex;
@@ -18,12 +16,17 @@ namespace PlatformPuzzle.Levels
             _button.interactable = isUnlocked;
 
             if (_lockIcon != null)
+            {
                 _lockIcon.SetActive(!isUnlocked);
+            }
         }
 
         public void OnClick()
         {
-            if (!_button.interactable) return;
+            if (!_button.interactable)
+            {
+                return;
+            }
 
             LevelConstructor.Instance.LoadLevelWithTimerReset(_levelIndex);
         }

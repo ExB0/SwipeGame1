@@ -1,8 +1,10 @@
 using System;
 using System.Threading;
+
 using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
+
 namespace PlatformPuzzle.Levels
 {
     public class LevelTimer : MonoBehaviour
@@ -24,16 +26,25 @@ namespace PlatformPuzzle.Levels
         {
             if (_timerText == null)
             {
-                Debug.LogError($"{nameof(LevelTimer)}: TimerText is NOT assigned!", this);
+                Debug.LogError(
+                    $"{nameof(LevelTimer)}: TimerText is NOT assigned!",
+                    this
+                );
             }
 
             if (_timer == null)
             {
-                Debug.LogWarning($"{nameof(LevelTimer)}: Timer root is not assigned, using TimerText GameObject", this);
+                Debug.LogWarning(
+                    $"{nameof(LevelTimer)}: Timer root is not assigned, using TimerText GameObject",
+                    this
+                );
 
                 if (_timerText != null)
+                {
                     _timer = _timerText.gameObject;
+                }
             }
+
             HideTimer();
         }
 
@@ -82,20 +93,31 @@ namespace PlatformPuzzle.Levels
 
             UpdateView();
         }
+
         public void ShowTimer()
         {
-            if (_timer == null) return;
+            if (_timer == null)
+            {
+                return;
+            }
+
             _timer.SetActive(true);
         }
 
         public void HideTimer()
         {
-            if (_timer == null) return;
+            if (_timer == null)
+            {
+                return;
+            }
+
             _timer.SetActive(false);
         }
+
         public void StopAndHide()
         {
             StopTimer();
+
             HideTimer();
         }
 
@@ -120,7 +142,9 @@ namespace PlatformPuzzle.Levels
                 {
                     _isRunning = false;
                     _remainingTime = 0f;
+
                     UpdateView();
+
                     OnTimeExpired?.Invoke();
                 }
             }
@@ -131,7 +155,10 @@ namespace PlatformPuzzle.Levels
 
         private void UpdateView()
         {
-            if (_timerText == null) return;
+            if (_timerText == null)
+            {
+                return;
+            }
 
             if (_isUnlimited)
             {
@@ -139,7 +166,10 @@ namespace PlatformPuzzle.Levels
                 return;
             }
 
-            int totalSeconds = Mathf.CeilToInt(Mathf.Max(0f, _remainingTime));
+            int totalSeconds = Mathf.CeilToInt(
+                Mathf.Max(0f, _remainingTime)
+            );
+
             int minutes = totalSeconds / 60;
             int seconds = totalSeconds % 60;
 

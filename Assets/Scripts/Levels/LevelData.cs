@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Units;
@@ -19,9 +20,9 @@ namespace PlatformPuzzle.Levels
         [Header("Timer")]
         [Range(10, 300)]
         public int TimeLimitSeconds = 120;
-
     }
-    [System.Serializable]
+
+    [Serializable]
     public class CarSpawnData
     {
         public UnitType UnitType = UnitType.Car;
@@ -29,14 +30,14 @@ namespace PlatformPuzzle.Levels
         public Vector2Int GridPosition;
     }
 
-    [System.Serializable]
+    [Serializable]
     public class PersonSpawnData
     {
         public UnitType UnitType = UnitType.Person;
         public UnitColor Color;
     }
 
-    [System.Serializable]
+    [Serializable]
     public class SpawnerPeopleData
     {
         public List<PersonSpawnData> People;
