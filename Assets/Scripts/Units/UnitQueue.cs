@@ -1,7 +1,10 @@
 using System.Collections.Generic;
 using System.Threading;
+
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+
+using InterFaces;
 
 namespace Units
 {
@@ -23,23 +26,23 @@ namespace Units
             }
         }
 
-        public async UniTask Enqueue(GameObject obj, CancellationToken token)
+        public async UniTask Enqueue(GameObject unitObject, CancellationToken token)
         {
             if (_queue.Count >= _queuePositions.Length)
             {
                 Debug.LogWarning($"{name}: Queue is full");
-                Destroy(obj);
+                Destroy(unitObject);
                 return;
             }
 
-            obj.SetActive(true);
+            unitObject.SetActive(true);
 
-            IQueueable queueable = obj.GetComponent<IQueueable>();
+            IQueueable queueable = unitObject.GetComponent<IQueueable>();
 
             if (queueable == null)
             {
                 Debug.LogError("Объект не реализует IQueueable");
-                Destroy(obj);
+                Destroy(unitObject);
                 return;
             }
 
@@ -50,7 +53,8 @@ namespace Units
             await queueable.MoveToPosition(
                 _queuePositions[targetIndex].position,
                 _moveSpeed,
-                token);
+                token
+            );
         }
 
         public async UniTask Dequeue(CancellationToken token)
@@ -63,9 +67,9 @@ namespace Units
             _queue.Dequeue();
 
             int i = 0;
-            List<UniTask> tasks = new List<UniTask>();
+            List<UniTask> tasks = new();
 
-            foreach (IQueueable q in _queue)
+            foreach (IQueueable queueable in _queue)
             {
                 token.ThrowIfCancellationRequested();
 
@@ -74,11 +78,19 @@ namespace Units
                     break;
                 }
 
-                MonoBehaviour mb = q as MonoBehaviour;
+                MonoBehaviour monoBehaviour = queueable as MonoBehaviour;
 
-                if (q != null && mb != null && mb.gameObject.activeInHierarchy)
+                if (queueable != null &&
+                    monoBehaviour != null &&
+                    monoBehaviour.gameObject.activeInHierarchy)
                 {
-                    tasks.Add(q.MoveToPosition(_queuePositions[i].position, _moveSpeed, token));
+                    tasks.Add(
+                        queueable.MoveToPosition(
+                            _queuePositions[i].position,
+                            _moveSpeed,
+                            token
+                        )
+                    );
                 }
 
                 i++;
@@ -89,22 +101,9 @@ namespace Units
 
         public IQueueable Peek()
         {
-            return _queue.Count > 0 ? _queue.Peek() : null;
-        }
-
-        public void ClearImmediate()
-        {
-            foreach (IQueueable unit in _queue)
-            {
-                GameObject go = (unit as MonoBehaviour)?.gameObject;
-
-                if (go != null)
-                {
-                    go.SetActive(false);
-                }
-            }
-
-            _queue.Clear();
+            return _queue.Count > 0
+                ? _queue.Peek()
+                : null;
         }
 
         public void ClearAndDestroy()

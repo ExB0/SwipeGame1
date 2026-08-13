@@ -5,26 +5,26 @@ namespace PlatformPuzzle.UI
 {
     public class StartTextController : MonoBehaviour
     {
-        [SerializeField] private GameObject startTextObject;
+        [SerializeField] private GameObject _startTextObject;
 
         public async UniTask ShowIfFirstLevel(int levelIndex)
         {
             if (levelIndex != 0)
             {
-                startTextObject.SetActive(false);
+                _startTextObject.SetActive(false);
                 return;
             }
 
-            startTextObject.SetActive(true);
+            _startTextObject.SetActive(true);
 
             await UniTask.Delay(5000);
 
-            startTextObject.SetActive(false);
+            _startTextObject.SetActive(false);
         }
 
         public void HideText()
         {
-            startTextObject.SetActive(false);
+            _startTextObject.SetActive(false);
         }
     }
 }

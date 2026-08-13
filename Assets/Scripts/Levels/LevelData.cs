@@ -21,25 +21,4 @@ namespace PlatformPuzzle.Levels
         [Range(10, 300)]
         public int TimeLimitSeconds = 120;
     }
-
-    [Serializable]
-    public class CarSpawnData
-    {
-        public UnitType UnitType = UnitType.Car;
-        public UnitColor Color;
-        public Vector2Int GridPosition;
-    }
-
-    [Serializable]
-    public class PersonSpawnData
-    {
-        public UnitType UnitType = UnitType.Person;
-        public UnitColor Color;
-    }
-
-    [Serializable]
-    public class SpawnerPeopleData
-    {
-        public List<PersonSpawnData> People;
-    }
 }

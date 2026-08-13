@@ -1,40 +1,46 @@
 using System.Collections;
 using System.Collections.Generic;
+
 using UnityEngine;
 
-public class TapInteractionController : MonoBehaviour
+using InterFaces;
+
+namespace Controller
 {
-    [SerializeField] private Camera cam;
-    [SerializeField] private LayerMask _interactableLayers;
-
-    private void Update()
+    public class TapInteractionController : MonoBehaviour
     {
-        if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
+        [SerializeField] private Camera _camera;
+        [SerializeField] private LayerMask _interactableLayers;
+
+        private void Update()
         {
-            HandleClick(Input.GetTouch(0).position);
-            return;
+            if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
+            {
+                HandleClick(Input.GetTouch(0).position);
+                return;
+            }
+
+            if (Input.GetMouseButtonDown(0))
+            {
+                HandleClick(Input.mousePosition);
+            }
         }
 
-        if (Input.GetMouseButtonDown(0))
+        private void HandleClick(Vector3 screenPosition)
         {
-            HandleClick(Input.mousePosition);
-        }
-    }
+            if (_camera == null)
+            {
+                Debug.LogError("Camera is missing");
+                return;
+            }
 
-    private void HandleClick(Vector3 screenPosition)
-    {
-        if (cam == null)
-        {
-            Debug.LogError("Camera is missing");
-            return;
-        }
+            Ray ray = _camera.ScreenPointToRay(screenPosition);
 
-        Ray ray = cam.ScreenPointToRay(screenPosition);
-
-        if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _interactableLayers))
-        {
-            var clickable = hit.collider.GetComponent<IClickable>();
-            clickable?.OnClick();
+            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _interactableLayers))
+            {
+                var clickable = hit.collider.GetComponent<IClickable>();
+                clickable?.OnClick();
+            }
         }
     }
 }

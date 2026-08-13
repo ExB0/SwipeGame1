@@ -17,7 +17,7 @@ namespace PlatformPuzzle.Levels
         private bool _isRunning;
         private bool _isUnlimited;
 
-        public event Action OnTimeExpired;
+        public event Action TimeExpired;
 
         public bool IsUnlimited => _isUnlimited;
         public float RemainingTime => _remainingTime;
@@ -145,7 +145,7 @@ namespace PlatformPuzzle.Levels
 
                     UpdateView();
 
-                    OnTimeExpired?.Invoke();
+                    TimeExpired?.Invoke();
                 }
             }
             catch (OperationCanceledException)

@@ -1,6 +1,9 @@
 using UnityEngine;
 
-public interface IColorMatchable
+namespace InterFaces
 {
-    public Color GetColor();
+    public interface IColorMatchable
+    {
+        public Color GetColor();
+    }
 }

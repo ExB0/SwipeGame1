@@ -1,17 +1,28 @@
 using System.Collections.Generic;
 using System.Threading;
+
 using Cysharp.Threading.Tasks;
+using UnityEngine;
+using UnityEngine.Splines;
+
+using Effects;
+using Grid;
+using InterFaces;
 using PlatformPuzzle.Levels;
 using PlatformPuzzle.Managers;
 using PlatformPuzzle.Pathfinder;
-using UnityEngine;
-using UnityEngine.Splines;
 
 namespace Units
 {
     [RequireComponent(typeof(Rigidbody))]
     public class Car : MonoBehaviour, IColorMatchable
     {
+        private const float RotationThreshold = 0.5f;
+        private const float SplineCompletionThreshold = 0.99f;
+        private const float MoveOffset = 1f;
+        private const float ExitOffset = 3f;
+        private const float PositionOffset = 0.5f;
+
         [SerializeField] private Color _color;
         [SerializeField] private float _moveSpeed = 2f;
         [SerializeField] private float _rotationSpeed = 5f;
@@ -20,20 +31,18 @@ namespace Units
         [SerializeField] private float _leaveDistance = 20f;
         [SerializeField] private GameObject[] _passengers;
         [SerializeField] private ParticleSystem _smoke;
-
         [SerializeField] private AudioSource _engineStartAudio;
 
-        private LevelConstructor _levelConstructor;
+        private LevelFlowController _flowController;
         private Transform _roadPoint;
         private Rigidbody _rigidbody;
         private ScaleShakeEffect _scaleShakeEffect;
         private PathFinder _pathFinder;
-        private bool _isMoving = false;
-        private float _reachedDistance = 0.7f;
+        private bool _isMoving;
+        private readonly float _reachedDistance = 0.7f;
         private GridManager _gridManager;
         private RoadManager _roadManager;
-        private bool _leaving = false;
-        private CancellationToken _levelToken;
+        private bool _leaving;
 
         public Color GetColor() => _color;
         public bool IsMoving => _isMoving;
@@ -41,11 +50,11 @@ namespace Units
         private void Awake()
         {
             _rigidbody = GetComponent<Rigidbody>();
-            _pathFinder = new PathFinder();
             _splineAnimator = GetComponent<SplineAnimate>();
             _scaleShakeEffect = GetComponent<ScaleShakeEffect>();
 
             MeshRenderer renderer = GetComponent<MeshRenderer>();
+
             if (renderer != null)
             {
                 _color = renderer.material.color;
@@ -78,24 +87,37 @@ namespace Units
 
         private void Start()
         {
-            _gridManager = GridManager.Instance;
-            _roadManager = FindAnyObjectByType<RoadManager>();
-            _levelConstructor = LevelConstructor.Instance;
-
             if (_gridManager == null)
             {
-                Debug.LogError($"{name}: GridManager not found");
+                _gridManager = GridManager.Instance;
             }
 
             if (_roadManager == null)
             {
-                Debug.LogError($"{name}: RoadManager not found");
+                _roadManager = FindAnyObjectByType<RoadManager>();
             }
 
-            if (_levelConstructor != null)
+            if (_flowController == null)
             {
-                _levelToken = _levelConstructor.LevelToken;
+                _flowController = FindAnyObjectByType<LevelFlowController>();
             }
+
+            if (_smoke != null)
+            {
+                _smoke.Stop();
+            }
+        }
+
+        public void Initialize(
+            GridManager gridManager,
+            RoadManager roadManager,
+            LevelFlowController flowController,
+            PathFinder pathFinder)
+        {
+            _gridManager = gridManager;
+            _roadManager = roadManager;
+            _flowController = flowController;
+            _pathFinder = pathFinder;
 
             if (_smoke != null)
             {
@@ -129,6 +151,50 @@ namespace Units
             UniTask.Void(async () => await HandleClick());
         }
 
+        public bool TryGetSeat(out Transform seat)
+        {
+            if (_seats <= 0)
+            {
+                seat = null;
+                return false;
+            }
+
+            _seats--;
+
+            seat = transform;
+
+            if (_passengers != null &&
+                _seats >= 0 &&
+                _seats < _passengers.Length &&
+                _passengers[_seats] != null)
+            {
+                _passengers[_seats].SetActive(true);
+            }
+
+            return true;
+        }
+
+        public void SetSpline(SplineContainer splineContainer)
+        {
+            if (_splineAnimator == null)
+            {
+                return;
+            }
+
+            _splineAnimator.enabled = false;
+            _splineAnimator.Container = splineContainer;
+        }
+
+        public void SetRoad(Transform point)
+        {
+            _roadPoint = point;
+        }
+
+        public bool CanMoveFrom(Cell currentCell)
+        {
+            return TryGetPathToExit(currentCell, out _);
+        }
+
         private async UniTask HandleClick()
         {
             Cell currentCell = GetCurrentCell();
@@ -154,9 +220,10 @@ namespace Units
 
             if (path.Count == 0)
             {
-                _isMoving = true;
+                await MoveToPosition(
+                    transform.position + Vector3.forward * MoveOffset
+                );
 
-                await MoveToPosition(transform.position + Vector3.forward * 1f);
                 await MoveToPosition(_roadPoint.position);
                 await PlaySplineAnimator();
 
@@ -165,62 +232,6 @@ namespace Units
 
             await MoveAlongPath(path);
         }
-
-        private Cell FindClosestExit(Vector2Int startPos, List<Cell> exitCells)
-        {
-            Cell bestExit = exitCells[0];
-            float bestDistance = Vector2Int.Distance(startPos, bestExit.GridPosition);
-
-            foreach (Cell exit in exitCells)
-            {
-                float dist = Vector2Int.Distance(startPos, exit.GridPosition);
-                if (dist < bestDistance)
-                {
-                    bestDistance = dist;
-                    bestExit = exit;
-                }
-            }
-
-            return bestExit;
-        }
-
-        public bool TryGetSeat(out Transform seat)
-        {
-            if (_seats <= 0)
-            {
-                seat = null;
-                return false;
-            }
-
-            _seats--;
-
-            seat = transform;
-
-            if (_seats >= 0 && _seats < _passengers.Length)
-            {
-                _passengers[_seats].SetActive(true);
-            }
-
-            return true;
-        }
-
-        public void SetSpline(SplineContainer splineContainer)
-        {
-            if (_splineAnimator == null)
-            {
-                return;
-            }
-
-            _splineAnimator.enabled = false;
-            _splineAnimator.Container = splineContainer;
-        }
-
-        public bool CanMoveFrom(Cell currentCell)
-        {
-            return TryGetPathToExit(currentCell, out _);
-        }
-
-        public void SetRoad(Transform point) => _roadPoint = point;
 
         private async UniTask MoveAlongPath(List<Vector2Int> path)
         {
@@ -235,6 +246,7 @@ namespace Units
                 token.ThrowIfCancellationRequested();
 
                 Cell nextCell = _gridManager.GetCell(nextCellPos);
+
                 if (nextCell == null)
                 {
                     continue;
@@ -256,7 +268,9 @@ namespace Units
                     _smoke.Play();
                 }
 
-                await MoveToPosition(nextCell.transform.position + Vector3.up * 0.5f);
+                await MoveToPosition(
+                    nextCell.transform.position + Vector3.up * PositionOffset
+                );
 
                 nextCell.TryClearCar();
 
@@ -268,7 +282,8 @@ namespace Units
             _roadManager.UpdateCells();
 
             Vector3 exitPosition = transform.position;
-            await MoveToPosition(exitPosition + Vector3.forward * 3f);
+
+            await MoveToPosition(exitPosition + Vector3.forward * ExitOffset);
 
             _roadManager.UpdateCells();
 
@@ -280,9 +295,7 @@ namespace Units
         {
             path = null;
 
-            GridManager grid = GridManager.Instance;
-
-            if (grid == null)
+            if (_gridManager == null || _pathFinder == null)
             {
                 return false;
             }
@@ -292,7 +305,7 @@ namespace Units
                 return false;
             }
 
-            List<Cell> exitCells = grid.GetExitCells();
+            List<Cell> exitCells = _gridManager.GetExitCells();
 
             if (exitCells == null || exitCells.Count == 0)
             {
@@ -305,7 +318,6 @@ namespace Units
                 return true;
             }
 
-            Cell bestExit = null;
             List<Vector2Int> bestPath = null;
 
             foreach (Cell exit in exitCells)
@@ -317,7 +329,9 @@ namespace Units
 
                 List<Vector2Int> candidatePath = _pathFinder.FindPath(
                     currentCell.GridPosition,
-                    exit.GridPosition);
+                    exit.GridPosition,
+                    _gridManager
+                );
 
                 if (candidatePath == null || candidatePath.Count == 0)
                 {
@@ -327,7 +341,6 @@ namespace Units
                 if (bestPath == null || candidatePath.Count < bestPath.Count)
                 {
                     bestPath = candidatePath;
-                    bestExit = exit;
                 }
             }
 
@@ -349,7 +362,7 @@ namespace Units
 
                 _splineAnimator.Play();
 
-                while (_splineAnimator.NormalizedTime < 0.99f)
+                while (_splineAnimator.NormalizedTime < SplineCompletionThreshold)
                 {
                     token.ThrowIfCancellationRequested();
                     await UniTask.Yield(token);
@@ -371,7 +384,11 @@ namespace Units
                     continue;
                 }
 
-                float dist = Vector3.Distance(transform.position, cell.transform.position);
+                float dist = Vector3.Distance(
+                    transform.position,
+                    cell.transform.position
+                );
+
                 if (dist < minDist)
                 {
                     minDist = dist;
@@ -391,33 +408,35 @@ namespace Units
                 return;
             }
 
-            while (true)
+            while (Vector3.Distance(transform.position, targetPosition) > _reachedDistance)
             {
                 token.ThrowIfCancellationRequested();
 
                 Vector3 direction = targetPosition - transform.position;
                 float distance = direction.magnitude;
 
-                if (distance <= _reachedDistance)
-                {
-                    break;
-                }
-
-                if (distance > 0.5f)
+                if (distance > RotationThreshold)
                 {
                     direction.Normalize();
 
                     Quaternion targetRotation = Quaternion.LookRotation(direction);
-                    _rigidbody.MoveRotation(Quaternion.Slerp(
-                        _rigidbody.rotation,
-                        targetRotation,
-                        Time.deltaTime * _rotationSpeed));
+
+                    _rigidbody.MoveRotation(
+                        Quaternion.Slerp(
+                            _rigidbody.rotation,
+                            targetRotation,
+                            Time.deltaTime * _rotationSpeed
+                        )
+                    );
                 }
 
-                _rigidbody.MovePosition(Vector3.MoveTowards(
-                    transform.position,
-                    targetPosition,
-                    _moveSpeed * Time.deltaTime));
+                _rigidbody.MovePosition(
+                    Vector3.MoveTowards(
+                        transform.position,
+                        targetPosition,
+                        _moveSpeed * Time.deltaTime
+                    )
+                );
 
                 await UniTask.Yield();
             }
@@ -431,21 +450,25 @@ namespace Units
             _rigidbody.isKinematic = false;
             _isMoving = true;
 
-            Vector3 targetPosition = transform.position + transform.forward * _leaveDistance;
+            Vector3 targetPosition =
+                transform.position + transform.forward * _leaveDistance;
 
-            while (Vector3.Distance(transform.position, targetPosition) > 0.5f)
+            while (Vector3.Distance(transform.position, targetPosition) > RotationThreshold)
             {
                 token.ThrowIfCancellationRequested();
 
-                _rigidbody.MovePosition(Vector3.MoveTowards(
-                    transform.position,
-                    targetPosition,
-                    _moveSpeed * Time.deltaTime));
+                _rigidbody.MovePosition(
+                    Vector3.MoveTowards(
+                        transform.position,
+                        targetPosition,
+                        _moveSpeed * Time.deltaTime
+                    )
+                );
 
                 await UniTask.Yield(token);
             }
 
-            _levelConstructor.CheckWinCondition();
+            _flowController?.CheckWinCondition();
 
             gameObject.SetActive(false);
             Destroy(gameObject);
@@ -463,7 +486,7 @@ namespace Units
                 _roadManager.RemoveCar();
                 _leaving = true;
                 LeaveSpline().Forget();
-                _levelConstructor.CheckWinCondition();
+                _flowController?.CheckWinCondition();
             }
             else
             {

@@ -2,7 +2,12 @@ using System.Collections.Generic;
 
 using UnityEngine;
 using UnityEngine.Splines;
+
 using Units;
+using Grid;
+using InterFaces;
+using PlatformPuzzle.Pathfinder;
+using PlatformPuzzle.Levels;
 
 namespace PlatformPuzzle.Managers
 {
@@ -17,13 +22,16 @@ namespace PlatformPuzzle.Managers
         [SerializeField] private SplineContainer _splineContainer;
         [SerializeField] private Transform _splineStartPoint;
         [SerializeField] private List<Car> _activeCars = new();
+        [SerializeField] private RoadManager _roadManager;
+        [SerializeField] private LevelFlowController _flowController;
 
         private readonly List<Car> _carsToDestroy = new();
         private readonly List<GameObject> _spawnedObstacles = new();
         private readonly Dictionary<Vector2Int, Cell> _grid = new();
 
+        private readonly PathFinder _pathFinder = new();
+
         private IUnitFactory _unitFactory;
-        private RoadManager _roadManager;
 
         public int Width { get; set; } = 5;
         public int Height { get; set; } = 5;
@@ -53,11 +61,23 @@ namespace PlatformPuzzle.Managers
                 return;
             }
 
-            _roadManager = FindAnyObjectByType<RoadManager>();
+            if (_roadManager == null)
+            {
+                _roadManager = FindAnyObjectByType<RoadManager>();
+            }
+
+            if (_flowController == null)
+            {
+                _flowController = FindAnyObjectByType<LevelFlowController>();
+            }
 
             if (_roadManager == null)
             {
                 Debug.LogError("RoadManager is null");
+            }
+            else
+            {
+                _roadManager.Initialize(this);
             }
 
             BuildGrid();
@@ -120,6 +140,13 @@ namespace PlatformPuzzle.Managers
             }
 
             cell.TrySetCar(car);
+
+            car.Initialize(
+                this,
+                _roadManager,
+                _flowController,
+                _pathFinder
+            );
 
             car.SetSpline(_splineContainer);
             car.SetRoad(_splineStartPoint);
@@ -203,6 +230,7 @@ namespace PlatformPuzzle.Managers
             if (car == null)
             {
                 Debug.LogWarning("Нет машины");
+                return;
             }
 
             _activeCars.Remove(car);
@@ -219,7 +247,7 @@ namespace PlatformPuzzle.Managers
         {
             foreach (Cell cell in _cells)
             {
-                if (cell.HasCar)
+                if (cell != null && cell.HasCar)
                 {
                     cell.SetAvailable(available);
                 }
@@ -340,6 +368,11 @@ namespace PlatformPuzzle.Managers
         {
             foreach (Cell cell in _cells)
             {
+                if (cell == null)
+                {
+                    continue;
+                }
+
                 Gizmos.color = _exitCells.Contains(cell)
                     ? Color.red
                     : Color.green;

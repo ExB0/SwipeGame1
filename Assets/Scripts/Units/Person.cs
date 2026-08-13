@@ -1,6 +1,9 @@
 using System.Threading;
+
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+
+using InterFaces;
 
 namespace Units
 {
@@ -17,7 +20,7 @@ namespace Units
         [SerializeField] private AudioSource _pickupSound;
 
         private CancellationTokenSource _cancellationTokenSource;
-        private static readonly int IsWalking = Animator.StringToHash("IsWalking");
+        private static readonly int sIsWalking = Animator.StringToHash("IsWalking");
 
         public bool IsJumped { get; private set; }
 
@@ -31,10 +34,21 @@ namespace Units
             {
                 Debug.LogError($"{name}: Animator не найден!");
             }
+            else
+            {
+                _animator.speed = _animatorSpeed;
+            }
 
-            _animator.speed = _animatorSpeed;
+            MeshRenderer renderer = GetComponent<MeshRenderer>();
 
-            _color = GetComponent<MeshRenderer>().material.color;
+            if (renderer != null)
+            {
+                _color = renderer.material.color;
+            }
+            else
+            {
+                Debug.LogError($"{name}: MeshRenderer не найден!");
+            }
 
             _cancellationTokenSource = new CancellationTokenSource();
         }
@@ -69,10 +83,14 @@ namespace Units
 
             while (time < _jumpDuration)
             {
+                token.ThrowIfCancellationRequested();
+
                 float t = time / _jumpDuration;
 
                 float height = 4 * _jumpHeight * t * (1 - t);
-                Vector3 pos = Vector3.Lerp(start, target, t) + Vector3.up * height;
+                Vector3 pos =
+                    Vector3.Lerp(start, target, t) + Vector3.up * height;
+
                 transform.position = pos;
 
                 await UniTask.Yield();
@@ -84,7 +102,10 @@ namespace Units
             gameObject.SetActive(false);
         }
 
-        public async UniTask MoveToPosition(Vector3 target, float speed, CancellationToken token)
+        public async UniTask MoveToPosition(
+            Vector3 target,
+            float speed,
+            CancellationToken token)
         {
             if (speed <= 0f)
             {
@@ -97,13 +118,18 @@ namespace Units
                 return;
             }
 
-            using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
-                this.GetCancellationTokenOnDestroy(),
-                token);
+            using CancellationTokenSource linkedCts =
+                CancellationTokenSource.CreateLinkedTokenSource(
+                    this.GetCancellationTokenOnDestroy(),
+                    token
+                );
 
             CancellationToken linkedToken = linkedCts.Token;
 
-            _animator.SetBool(IsWalking, true);
+            if (_animator != null)
+            {
+                _animator.SetBool(sIsWalking, true);
+            }
 
             try
             {
@@ -117,7 +143,8 @@ namespace Units
                     transform.position = Vector3.MoveTowards(
                         transform.position,
                         target,
-                        speed * Time.deltaTime);
+                        speed * Time.deltaTime
+                    );
 
                     await UniTask.Yield(PlayerLoopTiming.Update, linkedToken);
                 }
@@ -128,14 +155,17 @@ namespace Units
             {
                 if (_animator != null)
                 {
-                    _animator.SetBool(IsWalking, false);
+                    _animator.SetBool(sIsWalking, false);
                 }
             }
         }
 
         private void PlaySound()
         {
-            _pickupSound.Play();
+            if (_pickupSound != null)
+            {
+                _pickupSound.Play();
+            }
         }
 
         private void OnDestroy()

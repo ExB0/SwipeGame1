@@ -1,4 +1,7 @@
-public interface IClickable
+namespace InterFaces
 {
-    public void OnClick();
+    public interface IClickable
+    {
+        public void OnClick();
+    }
 }

@@ -1,72 +1,75 @@
 using System.Collections;
 using UnityEngine;
 
-public class ScaleShakeEffect : MonoBehaviour
+namespace Effects
 {
-    public bool IsShaking { get; private set; }
-
-    [SerializeField] private float _scaleMultiplier = 1.2f;
-    [SerializeField] private float _duration = 0.3f;
-    [SerializeField] private float _shakeAmount = 0.05f;
-
-    private Vector3 _originalScale;
-    private Vector3 _originalPosition;
-
-    private void Start()
+    public class ScaleShakeEffect : MonoBehaviour
     {
-        _originalScale = transform.localScale;
-        _originalPosition = transform.localPosition;
-        IsShaking = false;
-    }
+        public bool IsShaking { get; private set; }
 
-    public void Shake()
-    {
-        if (IsShaking)
+        [SerializeField] private float _scaleMultiplier = 1.2f;
+        [SerializeField] private float _duration = 0.3f;
+        [SerializeField] private float _shakeAmount = 0.05f;
+
+        private Vector3 _originalScale;
+        private Vector3 _originalPosition;
+
+        private void Start()
         {
-            return;
+            _originalScale = transform.localScale;
+            _originalPosition = transform.localPosition;
+            IsShaking = false;
         }
 
-        StopAllCoroutines();
-        StartCoroutine(ShakeEffect());
-    }
-
-    private IEnumerator ShakeEffect()
-    {
-        IsShaking = true;
-        float time = 0f;
-        Vector3 targetScale = _originalScale * _scaleMultiplier;
-
-        while (time < _duration)
+        public void Shake()
         {
-            time += Time.deltaTime;
+            if (IsShaking)
+            {
+                return;
+            }
 
-            float t = time / _duration;
-
-            transform.localScale = Vector3.Lerp(_originalScale, targetScale, t);
-
-            Vector3 randomOffset = Random.insideUnitSphere * _shakeAmount;
-            transform.localPosition = _originalPosition + randomOffset;
-
-            yield return null;
+            StopAllCoroutines();
+            StartCoroutine(ShakeEffect());
         }
 
-        time = 0f;
-
-        while (time < _duration)
+        private IEnumerator ShakeEffect()
         {
-            time += Time.deltaTime;
+            IsShaking = true;
+            float time = 0f;
+            Vector3 targetScale = _originalScale * _scaleMultiplier;
 
-            float t = time / _duration;
+            while (time < _duration)
+            {
+                time += Time.deltaTime;
 
-            transform.localScale = Vector3.Lerp(targetScale, _originalScale, t);
-            transform.localPosition = Vector3.Lerp(transform.localPosition, _originalPosition, t);
+                float t = time / _duration;
 
-            yield return null;
+                transform.localScale = Vector3.Lerp(_originalScale, targetScale, t);
+
+                Vector3 randomOffset = Random.insideUnitSphere * _shakeAmount;
+                transform.localPosition = _originalPosition + randomOffset;
+
+                yield return null;
+            }
+
+            time = 0f;
+
+            while (time < _duration)
+            {
+                time += Time.deltaTime;
+
+                float t = time / _duration;
+
+                transform.localScale = Vector3.Lerp(targetScale, _originalScale, t);
+                transform.localPosition = Vector3.Lerp(transform.localPosition, _originalPosition, t);
+
+                yield return null;
+            }
+
+            transform.localScale = _originalScale;
+            transform.localPosition = _originalPosition;
+
+            IsShaking = false;
         }
-
-        transform.localScale = _originalScale;
-        transform.localPosition = _originalPosition;
-
-        IsShaking = false;
     }
 }

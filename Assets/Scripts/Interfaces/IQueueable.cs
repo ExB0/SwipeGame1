@@ -2,7 +2,10 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
-public interface IQueueable
+namespace InterFaces
 {
-    UniTask MoveToPosition(Vector3 target, float speed, CancellationToken token);
+    public interface IQueueable
+    {
+        UniTask MoveToPosition(Vector3 target, float speed, CancellationToken token);
+    }
 }

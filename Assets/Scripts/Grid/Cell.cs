@@ -1,85 +1,114 @@
 using UnityEngine;
+
 using Units;
+using InterFaces;
 
-[RequireComponent(typeof(Collider))]
-public class Cell : MonoBehaviour, IClickable
+namespace Grid
 {
-    [SerializeField] private Car _currentCar;
-    [SerializeField] private bool _isObstacle;
-    [SerializeField] private float _carYOffset = 3f;
-
-    [SerializeField] private MeshRenderer _groundRenderer;
-    [SerializeField] private Material _normalMaterial;
-    [SerializeField] private Material _availableMaterial;
-
-    public Vector2Int GridPosition { get; private set; }
-    public bool IsReserved { get; private set; }
-    public bool IsBlocked => HasCar || IsReserved || _isObstacle;
-    public bool HasCar => _currentCar != null;
-    public bool IsObstacle => _isObstacle;
-    public Car CurrentCar => _currentCar;
-
-    public void Initialize(Vector2Int gridPos) => GridPosition = gridPos;
-
-    public void Reserve() => IsReserved = true;
-
-    public void Unreserve() => IsReserved = false;
-
-    public bool TrySetCar(Car car)
+    [RequireComponent(typeof(Collider))]
+    public class Cell : MonoBehaviour, IClickable
     {
-        if (car == null || HasCar)
+        [SerializeField] private Car _currentCar;
+        [SerializeField] private bool _isObstacle;
+        [SerializeField] private float _carYOffset = 3f;
+
+        [SerializeField] private MeshRenderer _groundRenderer;
+        [SerializeField] private Material _normalMaterial;
+        [SerializeField] private Material _availableMaterial;
+
+        public Vector2Int GridPosition { get; private set; }
+        public bool IsReserved { get; private set; }
+        public bool IsBlocked => HasCar || IsReserved || _isObstacle;
+        public bool HasCar => _currentCar != null;
+        public bool IsObstacle => _isObstacle;
+        public Car CurrentCar => _currentCar;
+
+        public void Initialize(Vector2Int gridPos)
         {
-            return false;
+            GridPosition = gridPos;
         }
 
-        _currentCar = car;
-        car.transform.position = transform.position + Vector3.down * _carYOffset;
-        car.transform.SetParent(transform);
-        return true;
-    }
-
-    public bool TryApplyCar(Car car)
-    {
-        if (car == null || IsBlocked)
+        public void Reserve()
         {
-            return false;
+            IsReserved = true;
         }
 
-        _currentCar = car;
-        return true;
-    }
-
-    public bool TryClearCar()
-    {
-        if (!HasCar)
+        public void Unreserve()
         {
-            return false;
+            IsReserved = false;
         }
 
-        _currentCar.transform.SetParent(null);
-        _currentCar = null;
-        return true;
-    }
-
-    public void SetObstacle(bool value)
-    {
-        _isObstacle = value;
-
-        if (_isObstacle)
+        public bool TrySetCar(Car car)
         {
-            SetAvailable(false);
+            if (car == null || HasCar)
+            {
+                return false;
+            }
+
+            _currentCar = car;
+            car.transform.position = transform.position + Vector3.down * _carYOffset;
+            car.transform.SetParent(transform);
+
+            return true;
         }
-    }
 
-    public void SetAvailable(bool available)
-    {
-        _groundRenderer.material = available
-            ? _availableMaterial
-            : _normalMaterial;
-    }
+        public bool TryApplyCar(Car car)
+        {
+            if (car == null || IsBlocked)
+            {
+                return false;
+            }
 
-    public void OnClick()
-    {
-        _currentCar?.OnClick();
+            _currentCar = car;
+
+            return true;
+        }
+
+        public bool TryClearCar()
+        {
+            if (!HasCar)
+            {
+                return false;
+            }
+
+            _currentCar.transform.SetParent(null);
+            _currentCar = null;
+
+            return true;
+        }
+
+        public void SetObstacle(bool value)
+        {
+            _isObstacle = value;
+
+            if (_isObstacle)
+            {
+                SetAvailable(false);
+            }
+        }
+
+        public void SetAvailable(bool available)
+        {
+            if (_groundRenderer == null)
+            {
+                return;
+            }
+
+            Material targetMaterial = available
+                ? _availableMaterial
+                : _normalMaterial;
+
+            if (targetMaterial == null)
+            {
+                return;
+            }
+
+            _groundRenderer.material = targetMaterial;
+        }
+
+        public void OnClick()
+        {
+            _currentCar?.OnClick();
+        }
     }
 }

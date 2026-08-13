@@ -1,4 +1,5 @@
 using UnityEngine;
+using SavingSystem;
 
 namespace PlatformPuzzle.Levels
 {
@@ -12,7 +13,7 @@ namespace PlatformPuzzle.Levels
 
             foreach (var button in _buttons)
             {
-                button.Init(data.UnlockedLevel);
+                button.Initialize(data.UnlockedLevel);
             }
         }
     }

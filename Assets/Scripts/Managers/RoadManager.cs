@@ -1,6 +1,8 @@
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+
 using Units;
+using Grid;
 
 namespace PlatformPuzzle.Managers
 {
@@ -8,12 +10,23 @@ namespace PlatformPuzzle.Managers
     {
         [SerializeField] private int _maxCarsNumber = 3;
         [SerializeField] private int _currentCarsNumber;
+        [SerializeField] private GridManager _gridManager;
 
         private async void Start()
         {
             await UniTask.Yield();
 
+            if (_gridManager == null)
+            {
+                _gridManager = GridManager.Instance;
+            }
+
             UpdateCells();
+        }
+
+        public void Initialize(GridManager gridManager)
+        {
+            _gridManager = gridManager;
         }
 
         public bool IsRoadFull()
@@ -24,7 +37,6 @@ namespace PlatformPuzzle.Managers
         public void AddCar()
         {
             _currentCarsNumber++;
-
             UpdateCells();
         }
 
@@ -43,7 +55,6 @@ namespace PlatformPuzzle.Managers
         public void ClearCars()
         {
             _currentCarsNumber = 0;
-
             UpdateCells();
         }
 
@@ -54,14 +65,12 @@ namespace PlatformPuzzle.Managers
 
         public void UpdateCells()
         {
-            GridManager grid = GridManager.Instance;
-
-            if (grid == null)
+            if (_gridManager == null)
             {
                 return;
             }
 
-            foreach (Cell cell in grid.GetAllCells())
+            foreach (Cell cell in _gridManager.GetAllCells())
             {
                 if (cell == null)
                 {

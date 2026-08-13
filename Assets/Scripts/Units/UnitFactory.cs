@@ -1,11 +1,14 @@
 using System.Collections.Generic;
+
 using UnityEngine;
+
+using InterFaces;
 
 namespace Units
 {
     public class UnitFactory : MonoBehaviour, IUnitFactory
     {
-        [SerializeField] private List<UnitPrefabEntry> unitPrefabs;
+        [SerializeField] private List<UnitPrefabEntry> _unitPrefabs;
 
         private Dictionary<(UnitType, UnitColor), GameObject> _prefabMap;
 
@@ -13,7 +16,7 @@ namespace Units
         {
             _prefabMap = new Dictionary<(UnitType, UnitColor), GameObject>();
 
-            foreach (UnitPrefabEntry entry in unitPrefabs)
+            foreach (UnitPrefabEntry entry in _unitPrefabs)
             {
                 (UnitType, UnitColor) key = (entry.UnitType, entry.UnitColor);
 

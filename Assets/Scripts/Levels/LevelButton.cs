@@ -9,7 +9,7 @@ namespace PlatformPuzzle.Levels
         [SerializeField] private Button _button;
         [SerializeField] private GameObject _lockIcon;
 
-        public void Init(int unlockedLevel)
+        public void Initialize(int unlockedLevel)
         {
             bool isUnlocked = _levelIndex <= unlockedLevel;
 

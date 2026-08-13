@@ -22,8 +22,8 @@ namespace PlatformPuzzle.Managers
 
         private AudioSource _currentMusic;
 
-        public event Action<float> OnVolumeChanged;
-        public event Action<bool> OnMuteChanged;
+        public event Action<float> VolumeChanged;
+        public event Action<bool> MuteChanged;
 
         private void Awake()
         {
@@ -158,7 +158,7 @@ namespace PlatformPuzzle.Managers
             _audioMixer.SetFloat("MusicVolume", db);
             _audioMixer.SetFloat("SFXVolume", db);
 
-            OnVolumeChanged?.Invoke(value);
+            VolumeChanged?.Invoke(value);
         }
 
         private void ApplyMute(bool value)
@@ -174,7 +174,7 @@ namespace PlatformPuzzle.Managers
             _audioMixer.SetFloat("MusicVolume", db);
             _audioMixer.SetFloat("SFXVolume", db);
 
-            OnMuteChanged?.Invoke(value);
+            MuteChanged?.Invoke(value);
         }
 
         private void PlayRandomized(AudioSource source)
