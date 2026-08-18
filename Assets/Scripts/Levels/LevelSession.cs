@@ -11,6 +11,11 @@ namespace PlatformPuzzle.Levels
         public CancellationToken Token =>
             _levelCts?.Token ?? CancellationToken.None;
 
+        private void OnDestroy()
+        {
+            Cancel();
+        }
+
         public void Create()
         {
             Cancel();
@@ -23,11 +28,6 @@ namespace PlatformPuzzle.Levels
             _levelCts?.Cancel();
             _levelCts?.Dispose();
             _levelCts = null;
-        }
-
-        private void OnDestroy()
-        {
-            Cancel();
         }
     }
 }

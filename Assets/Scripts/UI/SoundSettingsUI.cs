@@ -1,6 +1,7 @@
-using PlatformPuzzle.Managers;
 using UnityEngine;
 using UnityEngine.UI;
+
+using PlatformPuzzle.Managers;
 
 namespace PlatformPuzzle.UI
 {
@@ -17,7 +18,7 @@ namespace PlatformPuzzle.UI
             if (SoundManager.Instance != null)
             {
                 SoundManager.Instance.VolumeChanged += OnVolumeChanged;
-                SoundManager.Instance.MuteChanged += OnMuteChanged;
+                SoundManager.Instance.SoundEnabledChanged += OnMuteChanged;
             }
 
             UpdateUI();
@@ -31,7 +32,7 @@ namespace PlatformPuzzle.UI
             if (SoundManager.Instance != null)
             {
                 SoundManager.Instance.VolumeChanged -= OnVolumeChanged;
-                SoundManager.Instance.MuteChanged -= OnMuteChanged;
+                SoundManager.Instance.SoundEnabledChanged -= OnMuteChanged;
             }
         }
 
@@ -42,7 +43,7 @@ namespace PlatformPuzzle.UI
 
         private void OnToggleValueChanged(bool value)
         {
-            SoundManager.Instance?.SetMusicEnabled(value);
+            SoundManager.Instance?.SetSoundEnabled(value);
         }
 
         private void OnVolumeChanged(float value)

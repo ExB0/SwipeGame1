@@ -8,6 +8,15 @@ namespace PlatformPuzzle.Levels
         [SerializeField] private int _levelIndex;
         [SerializeField] private Button _button;
         [SerializeField] private GameObject _lockIcon;
+        [SerializeField] private LevelConstructor _levelConstructor;
+
+        private void Awake()
+        {
+            if (_button == null)
+            {
+                _button = GetComponent<Button>();
+            }
+        }
 
         public void Initialize(int unlockedLevel)
         {
@@ -23,12 +32,22 @@ namespace PlatformPuzzle.Levels
 
         public void OnClick()
         {
-            if (!_button.interactable)
+            if (_button == null ||
+                !_button.interactable)
             {
                 return;
             }
 
-            LevelConstructor.Instance.LoadLevelWithTimerReset(_levelIndex);
+            if (_levelConstructor == null)
+            {
+                Debug.LogError(
+                    $"{nameof(LevelButton)}: LevelConstructor is missing"
+                );
+
+                return;
+            }
+
+            _levelConstructor.LoadLevelWithTimerReset(_levelIndex);
         }
     }
 }

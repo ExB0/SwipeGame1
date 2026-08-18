@@ -1,8 +1,7 @@
-using Cysharp.Threading.Tasks;
 using UnityEngine;
 
-using Units;
 using Grid;
+using Units;
 
 namespace PlatformPuzzle.Managers
 {
@@ -12,13 +11,15 @@ namespace PlatformPuzzle.Managers
         [SerializeField] private int _currentCarsNumber;
         [SerializeField] private GridManager _gridManager;
 
-        private async void Start()
+        private void Start()
         {
-            await UniTask.Yield();
-
             if (_gridManager == null)
             {
-                _gridManager = GridManager.Instance;
+                Debug.LogError(
+                    $"{nameof(RoadManager)}: GridManager is missing"
+                );
+
+                return;
             }
 
             UpdateCells();

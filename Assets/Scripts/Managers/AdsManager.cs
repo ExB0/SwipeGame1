@@ -1,7 +1,8 @@
 using System;
-
 using Cysharp.Threading.Tasks;
+
 using UnityEngine;
+
 using YG;
 
 namespace PlatformPuzzle.Managers
@@ -30,6 +31,28 @@ namespace PlatformPuzzle.Managers
             Instance = this;
         }
 
+        private void OnEnable()
+        {
+            YG2.onCloseInterAdv += OnAdClosed;
+        }
+
+        private void OnDisable()
+        {
+            YG2.onCloseInterAdv -= OnAdClosed;
+
+            if (_isAdShowing)
+            {
+                _isAdShowing = false;
+                PauseGameYG.SetState(1, false, false);
+                _onAdClosed = null;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            YG2.onCloseInterAdv -= OnAdClosed;
+        }
+
         public void RegisterAction(int weight = 1)
         {
             _actionCounter += weight;
@@ -38,29 +61,19 @@ namespace PlatformPuzzle.Managers
         public bool TryShowAd(Action onClosed = null)
         {
             if (_isAdShowing)
-            {
                 return true;
-            }
 
             if (_actionCounter < ActionThreshold)
-            {
                 return false;
-            }
 
             if (Time.time - _lastAdTime < Cooldown)
-            {
                 return false;
-            }
 
             if (!YG2.isTimerAdvCompleted)
-            {
                 return false;
-            }
 
             _onAdClosed = onClosed;
-
             ShowAd();
-
             return true;
         }
 
@@ -72,30 +85,27 @@ namespace PlatformPuzzle.Managers
 
             PauseGameYG.SetState(0, true, true);
 
-            YG2.onCloseInterAdv -= OnAdClosed;
-            YG2.onCloseInterAdv += OnAdClosed;
-
             YG2.InterstitialAdvShow();
         }
 
-        private async void OnAdClosed()
+        private void OnAdClosed()
         {
             _isAdShowing = false;
 
             PauseGameYG.SetState(1, false, false);
 
-            await UniTask.Yield();
-            await UniTask.DelayFrame(2);
+            UniTask.Void(async () =>
+            {
+                await UniTask.Yield();
+                await UniTask.DelayFrame(2);
 
-            Cursor.visible = true;
-            Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+                Cursor.lockState = CursorLockMode.None;
 
-            YG2.onCloseInterAdv -= OnAdClosed;
-
-            Action callback = _onAdClosed;
-            _onAdClosed = null;
-
-            callback?.Invoke();
+                Action callback = _onAdClosed;
+                _onAdClosed = null;
+                callback?.Invoke();
+            });
         }
     }
 }

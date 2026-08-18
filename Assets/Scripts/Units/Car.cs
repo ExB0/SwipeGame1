@@ -5,7 +5,6 @@ using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Splines;
 
-using Effects;
 using Grid;
 using InterFaces;
 using PlatformPuzzle.Levels;
@@ -22,6 +21,8 @@ namespace Units
         private const float MoveOffset = 1f;
         private const float ExitOffset = 3f;
         private const float PositionOffset = 0.5f;
+        private const int WaitFrameCount = 1;
+        private const float ReachedDistance = 0.7f;
 
         [SerializeField] private Color _color;
         [SerializeField] private float _moveSpeed = 2f;
@@ -30,28 +31,39 @@ namespace Units
         [SerializeField] private int _seats = 2;
         [SerializeField] private float _leaveDistance = 20f;
         [SerializeField] private GameObject[] _passengers;
-        [SerializeField] private ParticleSystem _smoke;
-        [SerializeField] private AudioSource _engineStartAudio;
+        [SerializeField] private CarAudio _carAudio;
+        [SerializeField] private CarEffects _carEffects;
 
         private LevelFlowController _flowController;
         private Transform _roadPoint;
         private Rigidbody _rigidbody;
-        private ScaleShakeEffect _scaleShakeEffect;
         private PathFinder _pathFinder;
         private bool _isMoving;
-        private readonly float _reachedDistance = 0.7f;
         private GridManager _gridManager;
+        private GridCarSpawner _gridCarSpawner;
         private RoadManager _roadManager;
         private bool _leaving;
 
-        public Color GetColor() => _color;
         public bool IsMoving => _isMoving;
 
         private void Awake()
         {
             _rigidbody = GetComponent<Rigidbody>();
-            _splineAnimator = GetComponent<SplineAnimate>();
-            _scaleShakeEffect = GetComponent<ScaleShakeEffect>();
+
+            if (_splineAnimator == null)
+            {
+                _splineAnimator = GetComponent<SplineAnimate>();
+            }
+
+            if (_carAudio == null)
+            {
+                _carAudio = GetComponent<CarAudio>();
+            }
+
+            if (_carEffects == null)
+            {
+                _carEffects = GetComponent<CarEffects>();
+            }
 
             MeshRenderer renderer = GetComponent<MeshRenderer>();
 
@@ -69,14 +81,14 @@ namespace Units
                 Debug.LogError($"{name}: SplineAnimate not found");
             }
 
-            if (_scaleShakeEffect == null)
+            if (_carAudio == null)
             {
-                Debug.LogError($"{name}: ScaleShakeEffect not found");
+                Debug.LogWarning($"{name}: CarAudio is missing");
             }
 
-            if (_smoke == null)
+            if (_carEffects == null)
             {
-                Debug.LogWarning($"{name}: smoke particle is missing");
+                Debug.LogWarning($"{name}: CarEffects is missing");
             }
 
             if (_passengers == null)
@@ -85,54 +97,49 @@ namespace Units
             }
         }
 
-        private void Start()
+        private void OnDrawGizmos()
         {
-            if (_gridManager == null)
+            if (_roadPoint == null)
             {
-                _gridManager = GridManager.Instance;
+                return;
             }
 
-            if (_roadManager == null)
-            {
-                _roadManager = FindAnyObjectByType<RoadManager>();
-            }
+            Gizmos.color = Color.green;
+            Gizmos.DrawLine(transform.position, _roadPoint.position);
+        }
 
-            if (_flowController == null)
-            {
-                _flowController = FindAnyObjectByType<LevelFlowController>();
-            }
-
-            if (_smoke != null)
-            {
-                _smoke.Stop();
-            }
+        public Color GetColor()
+        {
+            return _color;
         }
 
         public void Initialize(
             GridManager gridManager,
+            GridCarSpawner gridCarSpawner,
             RoadManager roadManager,
             LevelFlowController flowController,
             PathFinder pathFinder)
         {
             _gridManager = gridManager;
+            _gridCarSpawner = gridCarSpawner;
             _roadManager = roadManager;
             _flowController = flowController;
             _pathFinder = pathFinder;
 
-            if (_smoke != null)
-            {
-                _smoke.Stop();
-            }
+            _carEffects?.StopSmoke();
         }
 
-        public void OnClick()
+        public void TryStartMove()
         {
-            if (_gridManager == null || _roadManager == null)
+            if (_gridManager == null ||
+                _roadManager == null)
             {
+                Debug.LogError($"{name}: Car was not initialized");
                 return;
             }
 
-            if (_scaleShakeEffect != null && _scaleShakeEffect.IsShaking)
+            if (_carEffects != null &&
+                _carEffects.IsShaking)
             {
                 return;
             }
@@ -144,7 +151,7 @@ namespace Units
 
             if (_roadManager.IsRoadFull())
             {
-                _scaleShakeEffect?.Shake();
+                _carEffects?.Shake();
                 return;
             }
 
@@ -204,9 +211,11 @@ namespace Units
                 return;
             }
 
-            if (!TryGetPathToExit(currentCell, out List<Vector2Int> path))
+            if (!TryGetPathToExit(
+                    currentCell,
+                    out List<Vector2Int> path))
             {
-                _scaleShakeEffect?.Shake();
+                _carEffects?.Shake();
                 return;
             }
 
@@ -221,7 +230,8 @@ namespace Units
             if (path.Count == 0)
             {
                 await MoveToPosition(
-                    transform.position + Vector3.forward * MoveOffset
+                    transform.position +
+                    Vector3.forward * MoveOffset
                 );
 
                 await MoveToPosition(_roadPoint.position);
@@ -235,9 +245,10 @@ namespace Units
 
         private async UniTask MoveAlongPath(List<Vector2Int> path)
         {
-            CancellationToken token = this.GetCancellationTokenOnDestroy();
+            CancellationToken token =
+                this.GetCancellationTokenOnDestroy();
 
-            PlayEngineSound();
+            _carAudio?.PlayEngineStart();
 
             _rigidbody.isKinematic = false;
 
@@ -245,7 +256,8 @@ namespace Units
             {
                 token.ThrowIfCancellationRequested();
 
-                Cell nextCell = _gridManager.GetCell(nextCellPos);
+                Cell nextCell =
+                    _gridManager.GetCell(nextCellPos);
 
                 if (nextCell == null)
                 {
@@ -255,21 +267,22 @@ namespace Units
                 while (nextCell.IsBlocked)
                 {
                     token.ThrowIfCancellationRequested();
-                    await UniTask.DelayFrame(1, cancellationToken: token);
+
+                    await UniTask.DelayFrame(
+                        WaitFrameCount,
+                        cancellationToken: token
+                    );
                 }
 
                 nextCell.TryApplyCar(this);
 
                 _roadManager.UpdateCells();
 
-                if (_smoke != null)
-                {
-                    _smoke.Clear();
-                    _smoke.Play();
-                }
+                _carEffects?.PlaySmoke();
 
                 await MoveToPosition(
-                    nextCell.transform.position + Vector3.up * PositionOffset
+                    nextCell.transform.position +
+                    Vector3.up * PositionOffset
                 );
 
                 nextCell.TryClearCar();
@@ -277,13 +290,15 @@ namespace Units
                 _roadManager.UpdateCells();
             }
 
-            _gridManager.RemoveCar(this);
+            _gridCarSpawner.RemoveCar(this);
 
             _roadManager.UpdateCells();
 
             Vector3 exitPosition = transform.position;
 
-            await MoveToPosition(exitPosition + Vector3.forward * ExitOffset);
+            await MoveToPosition(
+                exitPosition + Vector3.forward * ExitOffset
+            );
 
             _roadManager.UpdateCells();
 
@@ -291,11 +306,14 @@ namespace Units
             await PlaySplineAnimator();
         }
 
-        private bool TryGetPathToExit(Cell currentCell, out List<Vector2Int> path)
+        private bool TryGetPathToExit(
+            Cell currentCell,
+            out List<Vector2Int> path)
         {
             path = null;
 
-            if (_gridManager == null || _pathFinder == null)
+            if (_gridManager == null ||
+                _pathFinder == null)
             {
                 return false;
             }
@@ -305,9 +323,11 @@ namespace Units
                 return false;
             }
 
-            List<Cell> exitCells = _gridManager.GetExitCells();
+            List<Cell> exitCells =
+                _gridManager.GetExitCells();
 
-            if (exitCells == null || exitCells.Count == 0)
+            if (exitCells == null ||
+                exitCells.Count == 0)
             {
                 return false;
             }
@@ -327,18 +347,21 @@ namespace Units
                     continue;
                 }
 
-                List<Vector2Int> candidatePath = _pathFinder.FindPath(
-                    currentCell.GridPosition,
-                    exit.GridPosition,
-                    _gridManager
-                );
+                List<Vector2Int> candidatePath =
+                    _pathFinder.FindPath(
+                        currentCell.GridPosition,
+                        exit.GridPosition,
+                        _gridManager
+                    );
 
-                if (candidatePath == null || candidatePath.Count == 0)
+                if (candidatePath == null ||
+                    candidatePath.Count == 0)
                 {
                     continue;
                 }
 
-                if (bestPath == null || candidatePath.Count < bestPath.Count)
+                if (bestPath == null ||
+                    candidatePath.Count < bestPath.Count)
                 {
                     bestPath = candidatePath;
                 }
@@ -351,30 +374,35 @@ namespace Units
 
         private async UniTask PlaySplineAnimator()
         {
-            CancellationToken token = this.GetCancellationTokenOnDestroy();
+            CancellationToken token =
+                this.GetCancellationTokenOnDestroy();
 
-            if (_splineAnimator != null && _splineAnimator.Container != null)
+            if (_splineAnimator == null ||
+                _splineAnimator.Container == null)
             {
-                _rigidbody.isKinematic = true;
-                _splineAnimator.enabled = true;
-
-                await UniTask.NextFrame(token);
-
-                _splineAnimator.Play();
-
-                while (_splineAnimator.NormalizedTime < SplineCompletionThreshold)
-                {
-                    token.ThrowIfCancellationRequested();
-                    await UniTask.Yield(token);
-                }
-
-                CheckAfterCircle();
+                return;
             }
+
+            _rigidbody.isKinematic = true;
+            _splineAnimator.enabled = true;
+
+            await UniTask.NextFrame(token);
+
+            _splineAnimator.Play();
+
+            while (_splineAnimator.NormalizedTime <
+                   SplineCompletionThreshold)
+            {
+                token.ThrowIfCancellationRequested();
+                await UniTask.Yield(token);
+            }
+
+            HandleCircleCompleted();
         }
 
         private Cell GetCurrentCell()
         {
-            float minDist = float.MaxValue;
+            float minDistance = float.MaxValue;
             Cell closestCell = null;
 
             foreach (Cell cell in _gridManager.GetAllCells())
@@ -384,14 +412,14 @@ namespace Units
                     continue;
                 }
 
-                float dist = Vector3.Distance(
+                float distance = Vector3.Distance(
                     transform.position,
                     cell.transform.position
                 );
 
-                if (dist < minDist)
+                if (distance < minDistance)
                 {
-                    minDist = dist;
+                    minDistance = distance;
                     closestCell = cell;
                 }
             }
@@ -401,25 +429,33 @@ namespace Units
 
         private async UniTask MoveToPosition(Vector3 targetPosition)
         {
-            CancellationToken token = this.GetCancellationTokenOnDestroy();
+            CancellationToken token =
+                this.GetCancellationTokenOnDestroy();
 
-            if (Vector3.Distance(transform.position, targetPosition) <= _reachedDistance)
+            if (Vector3.Distance(
+                    transform.position,
+                    targetPosition) <= ReachedDistance)
             {
                 return;
             }
 
-            while (Vector3.Distance(transform.position, targetPosition) > _reachedDistance)
+            while (Vector3.Distance(
+                       transform.position,
+                       targetPosition) > ReachedDistance)
             {
                 token.ThrowIfCancellationRequested();
 
-                Vector3 direction = targetPosition - transform.position;
+                Vector3 direction =
+                    targetPosition - transform.position;
+
                 float distance = direction.magnitude;
 
                 if (distance > RotationThreshold)
                 {
                     direction.Normalize();
 
-                    Quaternion targetRotation = Quaternion.LookRotation(direction);
+                    Quaternion targetRotation =
+                        Quaternion.LookRotation(direction);
 
                     _rigidbody.MoveRotation(
                         Quaternion.Slerp(
@@ -444,16 +480,20 @@ namespace Units
 
         private async UniTask LeaveSpline()
         {
-            CancellationToken token = this.GetCancellationTokenOnDestroy();
+            CancellationToken token =
+                this.GetCancellationTokenOnDestroy();
 
             _splineAnimator.enabled = false;
             _rigidbody.isKinematic = false;
             _isMoving = true;
 
             Vector3 targetPosition =
-                transform.position + transform.forward * _leaveDistance;
+                transform.position +
+                transform.forward * _leaveDistance;
 
-            while (Vector3.Distance(transform.position, targetPosition) > RotationThreshold)
+            while (Vector3.Distance(
+                       transform.position,
+                       targetPosition) > RotationThreshold)
             {
                 token.ThrowIfCancellationRequested();
 
@@ -474,7 +514,7 @@ namespace Units
             Destroy(gameObject);
         }
 
-        private void CheckAfterCircle()
+        private void HandleCircleCompleted()
         {
             if (_leaving)
             {
@@ -491,26 +531,6 @@ namespace Units
             else
             {
                 PlaySplineAnimator().Forget();
-            }
-        }
-
-        private void PlayEngineSound()
-        {
-            if (_engineStartAudio != null)
-            {
-                _engineStartAudio.pitch = Random.Range(0.95f, 1.05f);
-                _engineStartAudio.volume = Random.Range(0.85f, 1f);
-
-                _engineStartAudio.Play();
-            }
-        }
-
-        private void OnDrawGizmos()
-        {
-            if (_roadPoint != null)
-            {
-                Gizmos.color = Color.green;
-                Gizmos.DrawLine(transform.position, _roadPoint.position);
             }
         }
     }

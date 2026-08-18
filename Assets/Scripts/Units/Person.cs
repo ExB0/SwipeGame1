@@ -7,20 +7,22 @@ using InterFaces;
 
 namespace Units
 {
-    public class Person : MonoBehaviour, IColorMatchable, IJumpable, IQueueable
+    public class Person : MonoBehaviour, IColorMatchable, IQueueable
     {
+        private static readonly int s_IsWalking = Animator.StringToHash("IsWalking");
+
         [SerializeField] private float _jumpHeight = 2f;
         [SerializeField] private float _jumpDuration = 2f;
-
+        [SerializeField] private float _minDistance = 0.01f;
+        [SerializeField] private float _jumpArcMultiplier = 4f;
+        [SerializeField] private float _fullProgress = 1f;
+        [SerializeField] private int _hideAfterJumpDelay = 30;
         [SerializeField] private Color _color;
-
         [SerializeField] private Animator _animator;
         [SerializeField] private float _animatorSpeed;
-
         [SerializeField] private AudioSource _pickupSound;
 
         private CancellationTokenSource _cancellationTokenSource;
-        private static readonly int sIsWalking = Animator.StringToHash("IsWalking");
 
         public bool IsJumped { get; private set; }
 
@@ -50,24 +52,41 @@ namespace Units
                 Debug.LogError($"{name}: MeshRenderer не найден!");
             }
 
-            _cancellationTokenSource = new CancellationTokenSource();
+            _cancellationTokenSource =
+                new CancellationTokenSource();
         }
 
-        public async UniTask JumpTo(Vector3 target, Transform parentTransform)
+        private void OnDestroy()
+        {
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+        }
+
+        public async UniTask JumpTo(
+            Vector3 target,
+            Transform parentTransform)
         {
             if (parentTransform == null)
             {
-                Debug.LogError($"{name}: Не задан родительский трансформ для посадки.");
+                Debug.LogError(
+                    $"{name}: Не задан родительский трансформ для посадки."
+                );
+
                 return;
             }
 
             if (target == transform.position)
             {
-                Debug.LogWarning($"{name}: Целевая позиция совпадает с текущей. Прыжок не требуется.");
+                Debug.LogWarning(
+                    $"{name}: Целевая позиция совпадает с текущей. " +
+                    "Прыжок не требуется."
+                );
+
                 return;
             }
 
-            CancellationToken token = _cancellationTokenSource.Token;
+            CancellationToken token =
+                _cancellationTokenSource.Token;
 
             if (IsJumped || token.IsCancellationRequested)
             {
@@ -85,20 +104,33 @@ namespace Units
             {
                 token.ThrowIfCancellationRequested();
 
-                float t = time / _jumpDuration;
+                float progress = time / _jumpDuration;
 
-                float height = 4 * _jumpHeight * t * (1 - t);
-                Vector3 pos =
-                    Vector3.Lerp(start, target, t) + Vector3.up * height;
+                float height =
+                    _jumpArcMultiplier *
+                    _jumpHeight *
+                    progress *
+                    (_fullProgress - progress);
 
-                transform.position = pos;
+                Vector3 position =
+                    Vector3.Lerp(
+                        start,
+                        target,
+                        progress
+                    ) +
+                    Vector3.up * height;
+
+                transform.position = position;
 
                 await UniTask.Yield();
+
                 time += Time.deltaTime;
             }
 
             transform.position = target;
-            await UniTask.Delay(30);
+
+            await UniTask.Delay(_hideAfterJumpDelay);
+
             gameObject.SetActive(false);
         }
 
@@ -109,35 +141,46 @@ namespace Units
         {
             if (speed <= 0f)
             {
-                Debug.LogError($"{name}: Скорость должна быть положительной. Текущее значение: {speed}");
+                Debug.LogError(
+                    $"{name}: Скорость должна быть положительной. " +
+                    $"Текущее значение: {speed}"
+                );
+
                 return;
             }
 
-            if (Vector3.Distance(transform.position, target) <= 0.01f)
+            if (Vector3.Distance(
+                    transform.position,
+                    target) <= _minDistance)
             {
                 return;
             }
 
-            using CancellationTokenSource linkedCts =
+            using CancellationTokenSource linkedCancellationTokenSource =
                 CancellationTokenSource.CreateLinkedTokenSource(
                     this.GetCancellationTokenOnDestroy(),
                     token
                 );
 
-            CancellationToken linkedToken = linkedCts.Token;
+            CancellationToken linkedToken =
+                linkedCancellationTokenSource.Token;
 
             if (_animator != null)
             {
-                _animator.SetBool(sIsWalking, true);
+                _animator.SetBool(s_IsWalking, true);
             }
 
             try
             {
-                while (Vector3.Distance(transform.position, target) > 0.01f)
+                while (Vector3.Distance(
+                           transform.position,
+                           target) > _minDistance)
                 {
                     linkedToken.ThrowIfCancellationRequested();
 
-                    Vector3 direction = (target - transform.position).normalized;
+                    Vector3 direction =
+                        (target - transform.position).normalized;
+
                     transform.forward = direction;
 
                     transform.position = Vector3.MoveTowards(
@@ -146,7 +189,10 @@ namespace Units
                         speed * Time.deltaTime
                     );
 
-                    await UniTask.Yield(PlayerLoopTiming.Update, linkedToken);
+                    await UniTask.Yield(
+                        PlayerLoopTiming.Update,
+                        linkedToken
+                    );
                 }
 
                 transform.position = target;
@@ -155,7 +201,10 @@ namespace Units
             {
                 if (_animator != null)
                 {
-                    _animator.SetBool(sIsWalking, false);
+                    _animator.SetBool(
+                        s_IsWalking,
+                        false
+                    );
                 }
             }
         }
@@ -166,12 +215,6 @@ namespace Units
             {
                 _pickupSound.Play();
             }
-        }
-
-        private void OnDestroy()
-        {
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
         }
     }
 }

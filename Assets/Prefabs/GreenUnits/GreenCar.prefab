@@ -16,6 +16,9 @@ GameObject:
   - component: {fileID: 879193174769249}
   - component: {fileID: 5295720286625890066}
   - component: {fileID: 733523215639052251}
+  - component: {fileID: 3534073808764522790}
+  - component: {fileID: 1348331743662368079}
+  - component: {fileID: 8867808200733577081}
   m_Layer: 2
   m_Name: GreenCar
   m_TagString: Untagged
@@ -85,8 +88,8 @@ MonoBehaviour:
   _passengers:
   - {fileID: 5423119757662054505}
   - {fileID: 4487083488177141374}
-  _smoke: {fileID: 4107910052335073820}
-  _engineStartAudio: {fileID: 733523215639052251}
+  _carAudio: {fileID: 0}
+  _carEffects: {fileID: 0}
 --- !u!54 &6828302750699470926
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -290,6 +293,46 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &3534073808764522790
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3012901272390444608}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 090daacb01f374b2593d26805525241b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _engineStartAudio: {fileID: 733523215639052251}
+--- !u!114 &1348331743662368079
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3012901272390444608}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd8dac43f128d45e388e075f7982a814, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _car: {fileID: 2945462979474635566}
+--- !u!114 &8867808200733577081
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3012901272390444608}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 91ed12f8abd9f4b579f3d703f8ecf3e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _smoke: {fileID: 4107910052335073820}
+  _scaleShakeEffect: {fileID: 879193174769249}
 --- !u!1 &7659911786170920945
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,18 +1,19 @@
 using System.Collections;
+
 using UnityEngine;
 
 namespace Effects
 {
     public class ScaleShakeEffect : MonoBehaviour
     {
-        public bool IsShaking { get; private set; }
-
         [SerializeField] private float _scaleMultiplier = 1.2f;
         [SerializeField] private float _duration = 0.3f;
         [SerializeField] private float _shakeAmount = 0.05f;
 
         private Vector3 _originalScale;
         private Vector3 _originalPosition;
+
+        public bool IsShaking { get; private set; }
 
         private void Start()
         {
@@ -44,10 +45,17 @@ namespace Effects
 
                 float t = time / _duration;
 
-                transform.localScale = Vector3.Lerp(_originalScale, targetScale, t);
+                transform.localScale = Vector3.Lerp(
+                    _originalScale,
+                    targetScale,
+                    t
+                );
 
-                Vector3 randomOffset = Random.insideUnitSphere * _shakeAmount;
-                transform.localPosition = _originalPosition + randomOffset;
+                Vector3 randomOffset =
+                    Random.insideUnitSphere * _shakeAmount;
+
+                transform.localPosition =
+                    _originalPosition + randomOffset;
 
                 yield return null;
             }
@@ -60,8 +68,17 @@ namespace Effects
 
                 float t = time / _duration;
 
-                transform.localScale = Vector3.Lerp(targetScale, _originalScale, t);
-                transform.localPosition = Vector3.Lerp(transform.localPosition, _originalPosition, t);
+                transform.localScale = Vector3.Lerp(
+                    targetScale,
+                    _originalScale,
+                    t
+                );
+
+                transform.localPosition = Vector3.Lerp(
+                    transform.localPosition,
+                    _originalPosition,
+                    t
+                );
 
                 yield return null;
             }

@@ -1,223 +1,78 @@
 using System.Collections.Generic;
 
 using UnityEngine;
-using UnityEngine.Splines;
 
-using Units;
 using Grid;
-using InterFaces;
-using PlatformPuzzle.Pathfinder;
-using PlatformPuzzle.Levels;
 
 namespace PlatformPuzzle.Managers
 {
     public class GridManager : MonoBehaviour
     {
-        public static GridManager Instance { get; private set; }
-
-        [SerializeField] private GameObject _obstaclePrefab;
-        [SerializeField] private List<Cell> _cells = new();
-        [SerializeField] private List<Cell> _exitCells = new();
-        [SerializeField] private MonoBehaviour _factorySource;
-        [SerializeField] private SplineContainer _splineContainer;
-        [SerializeField] private Transform _splineStartPoint;
-        [SerializeField] private List<Car> _activeCars = new();
-        [SerializeField] private RoadManager _roadManager;
-        [SerializeField] private LevelFlowController _flowController;
-
-        private readonly List<Car> _carsToDestroy = new();
-        private readonly List<GameObject> _spawnedObstacles = new();
         private readonly Dictionary<Vector2Int, Cell> _grid = new();
 
-        private readonly PathFinder _pathFinder = new();
+        [SerializeField] private List<Cell> _cells = new();
+        [SerializeField] private List<Cell> _exitCells = new();
+        [SerializeField] private int _width = 5;
+        [SerializeField] private int _height = 5;
 
-        private IUnitFactory _unitFactory;
-
-        public int Width { get; set; } = 5;
-        public int Height { get; set; } = 5;
-
-        public List<Cell> GetExitCells() => _exitCells;
-
-        public List<Cell> GetAllCells() => _cells;
+        public int Width => _width;
+        public int Height => _height;
 
         private void Awake()
         {
-            if (Instance != null && Instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-
-            Instance = this;
-
             ValidateReferences();
-
-            _unitFactory = _factorySource as IUnitFactory;
-
-            if (_unitFactory == null)
-            {
-                Debug.LogError("Нет Фабрики");
-                enabled = false;
-                return;
-            }
-
-            if (_roadManager == null)
-            {
-                _roadManager = FindAnyObjectByType<RoadManager>();
-            }
-
-            if (_flowController == null)
-            {
-                _flowController = FindAnyObjectByType<LevelFlowController>();
-            }
-
-            if (_roadManager == null)
-            {
-                Debug.LogError("RoadManager is null");
-            }
-            else
-            {
-                _roadManager.Initialize(this);
-            }
-
             BuildGrid();
         }
 
-        public void SpawnCarAt(
-            Vector2Int gridPosition,
-            UnitType unitType,
-            UnitColor unitColor)
+        private void OnDrawGizmos()
         {
-            if (_unitFactory == null)
+            if (_cells == null)
             {
-                Debug.LogError("UnitFactory is null");
                 return;
             }
 
-            if (_roadManager == null)
+            foreach (Cell cell in _cells)
             {
-                Debug.LogError("RoadManager is null");
-                return;
+                if (cell == null)
+                {
+                    continue;
+                }
+
+                Gizmos.color = _exitCells != null &&
+                               _exitCells.Contains(cell)
+                    ? Color.red
+                    : Color.green;
+
+                Gizmos.DrawWireCube(
+                    cell.transform.position,
+                    Vector3.one * 2f
+                );
             }
-
-            Cell cell = GetCell(gridPosition);
-
-            if (cell == null)
-            {
-                Debug.LogError($"No cell at position {gridPosition}");
-                return;
-            }
-
-            if (cell.HasCar)
-            {
-                Debug.LogWarning($"Cell {gridPosition} already has car");
-                return;
-            }
-
-            if (cell.IsObstacle)
-            {
-                Debug.LogWarning($"Cell {gridPosition} is obstacle");
-                return;
-            }
-
-            GameObject carObj = _unitFactory.Create(
-                unitType,
-                unitColor,
-                cell.transform.position
-            );
-
-            if (carObj == null)
-            {
-                Debug.LogError($"Failed to create car at {gridPosition}");
-                return;
-            }
-
-            if (!carObj.TryGetComponent(out Car car))
-            {
-                Debug.LogError("Created object does not contain Car component");
-                Destroy(carObj);
-                return;
-            }
-
-            cell.TrySetCar(car);
-
-            car.Initialize(
-                this,
-                _roadManager,
-                _flowController,
-                _pathFinder
-            );
-
-            car.SetSpline(_splineContainer);
-            car.SetRoad(_splineStartPoint);
-
-            _activeCars.Add(car);
-            _carsToDestroy.Add(car);
-
-            _roadManager.UpdateCells();
         }
 
-        public void BuildObstacles()
+        public List<Cell> GetExitCells()
         {
-            ClearObstacles();
+            return _exitCells;
+        }
 
-            foreach (Cell cell in GetAllCells())
-            {
-                if (!cell.HasCar && !_exitCells.Contains(cell))
-                {
-                    cell.SetObstacle(true);
-
-                    GameObject obstacle = Instantiate(
-                        _obstaclePrefab,
-                        cell.transform.position,
-                        Quaternion.identity
-                    );
-
-                    _spawnedObstacles.Add(obstacle);
-                }
-                else
-                {
-                    cell.SetObstacle(false);
-                }
-            }
-
-            _roadManager?.UpdateCells();
+        public List<Cell> GetAllCells()
+        {
+            return _cells;
         }
 
         public Cell GetCell(Vector2Int gridPosition)
         {
-            return _grid.TryGetValue(gridPosition, out Cell cell)
+            return _grid.TryGetValue(
+                gridPosition,
+                out Cell cell
+            )
                 ? cell
                 : null;
         }
 
-        public bool IsCellExists(Vector2Int gridPos)
+        public bool IsCellExists(Vector2Int gridPosition)
         {
-            return _grid.ContainsKey(gridPos);
-        }
-
-        public void ClearGrid()
-        {
-            foreach (Cell cell in _cells)
-            {
-                if (cell != null && cell.HasCar)
-                {
-                    cell.TryClearCar();
-                }
-            }
-
-            foreach (Car car in _carsToDestroy)
-            {
-                if (car != null)
-                {
-                    Destroy(car.gameObject);
-                }
-            }
-
-            _carsToDestroy.Clear();
-            _activeCars.Clear();
-
-            ClearObstacles();
+            return _grid.ContainsKey(gridPosition);
         }
 
         public void RebuildGrid()
@@ -225,29 +80,31 @@ namespace PlatformPuzzle.Managers
             BuildGrid();
         }
 
-        public void RemoveCar(Car car)
+        public void ClearCells()
         {
-            if (car == null)
+            foreach (Cell cell in _cells)
             {
-                Debug.LogWarning("Нет машины");
-                return;
+                if (cell == null)
+                {
+                    continue;
+                }
+
+                if (cell.HasCar)
+                {
+                    cell.TryClearCar();
+                }
+
+                cell.SetObstacle(false);
+                cell.SetAvailable(false);
             }
-
-            _activeCars.Remove(car);
-        }
-
-        public bool HasActiveCars()
-        {
-            _activeCars.RemoveAll(car => car == null);
-
-            return _activeCars.Count > 0;
         }
 
         public void SetCellsAvailable(bool available)
         {
             foreach (Cell cell in _cells)
             {
-                if (cell != null && cell.HasCar)
+                if (cell != null &&
+                    cell.HasCar)
                 {
                     cell.SetAvailable(available);
                 }
@@ -258,9 +115,19 @@ namespace PlatformPuzzle.Managers
         {
             _grid.Clear();
 
-            if (Width <= 0 || Height <= 0)
+            if (_width <= 0 ||
+                _height <= 0)
             {
-                Debug.LogError("Grid width and height must be greater than zero");
+                Debug.LogError(
+                    $"{nameof(GridManager)}: width and height must be greater than zero"
+                );
+
+                return;
+            }
+
+            if (_cells == null)
+            {
+                Debug.LogError($"{nameof(GridManager)}: cells list is null");
                 return;
             }
 
@@ -268,118 +135,57 @@ namespace PlatformPuzzle.Managers
             {
                 if (_cells[i] == null)
                 {
-                    Debug.LogError($"Cell at index {i} is null");
-                    continue;
-                }
-
-                int x = i % Width;
-                int y = i / Width;
-
-                if (y >= Height)
-                {
                     Debug.LogError(
-                        $"Превышена высота сетки! Ячейка {i} " +
-                        $"(x:{x}, y:{y}) выходит за пределы Height:{Height}"
+                        $"{nameof(GridManager)}: Cell at index {i} is null"
                     );
 
                     continue;
                 }
 
-                Vector2Int gridPos = new(x, y);
+                int x = i % _width;
+                int y = i / _width;
 
-                if (_grid.ContainsKey(gridPos))
+                if (y >= _height)
                 {
-                    Debug.LogError($"Duplicate grid position: {gridPos}");
+                    Debug.LogError(
+                        $"Превышена высота сетки! Ячейка {i} " +
+                        $"(x:{x}, y:{y}) выходит за пределы Height:{_height}"
+                    );
+
                     continue;
                 }
 
-                _cells[i].Initialize(gridPos);
-                _grid.Add(gridPos, _cells[i]);
-            }
-        }
+                Vector2Int gridPosition = new(x, y);
 
-        private void ClearObstacles()
-        {
-            foreach (GameObject obstacle in _spawnedObstacles)
-            {
-                if (obstacle != null)
+                if (_grid.ContainsKey(gridPosition))
                 {
-                    Destroy(obstacle);
-                }
-            }
+                    Debug.LogError(
+                        $"{nameof(GridManager)}: duplicate grid position {gridPosition}"
+                    );
 
-            _spawnedObstacles.Clear();
-
-            foreach (Cell cell in _cells)
-            {
-                if (cell != null)
-                {
-                    cell.SetObstacle(false);
+                    continue;
                 }
+
+                _cells[i].Initialize(gridPosition);
+                _grid.Add(gridPosition, _cells[i]);
             }
         }
 
         private void ValidateReferences()
         {
-            if (_obstaclePrefab == null)
-            {
-                Debug.LogError(
-                    $"{nameof(GridManager)}: obstacle prefab is missing"
-                );
-            }
-
-            if (_factorySource == null)
-            {
-                Debug.LogError(
-                    $"{nameof(GridManager)}: factory source is missing"
-                );
-            }
-
-            if (_splineContainer == null)
-            {
-                Debug.LogError(
-                    $"{nameof(GridManager)}: spline container is missing"
-                );
-            }
-
-            if (_splineStartPoint == null)
-            {
-                Debug.LogError(
-                    $"{nameof(GridManager)}: spline start point is missing"
-                );
-            }
-
-            if (_cells == null || _cells.Count == 0)
+            if (_cells == null ||
+                _cells.Count == 0)
             {
                 Debug.LogError(
                     $"{nameof(GridManager)}: cells list is empty"
                 );
             }
 
-            if (_exitCells == null || _exitCells.Count == 0)
+            if (_exitCells == null ||
+                _exitCells.Count == 0)
             {
                 Debug.LogWarning(
                     $"{nameof(GridManager)}: exit cells list is empty"
-                );
-            }
-        }
-
-        private void OnDrawGizmos()
-        {
-            foreach (Cell cell in _cells)
-            {
-                if (cell == null)
-                {
-                    continue;
-                }
-
-                Gizmos.color = _exitCells.Contains(cell)
-                    ? Color.red
-                    : Color.green;
-
-                Gizmos.DrawWireCube(
-                    cell.transform.position,
-                    Vector3.one * 2f
                 );
             }
         }

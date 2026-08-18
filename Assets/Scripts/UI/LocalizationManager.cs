@@ -24,30 +24,30 @@ namespace PlatformPuzzle.UI
 
         private void OnEnable()
         {
-            YG2.onSwitchLang += UpdateLanguage;
+            YG2.onSwitchLang += OnUpdateLanguage;
         }
 
         private void OnDisable()
         {
-            YG2.onSwitchLang -= UpdateLanguage;
+            YG2.onSwitchLang -= OnUpdateLanguage;
         }
 
         private void Start()
         {
             if (!string.IsNullOrEmpty(YG2.lang))
             {
-                UpdateLanguage(YG2.lang);
+                OnUpdateLanguage(YG2.lang);
             }
         }
 
-        private void UpdateLanguage(string lang)
+        private void OnUpdateLanguage(string language)
         {
             if (!Validate())
             {
                 return;
             }
 
-            switch (lang)
+            switch (language)
             {
                 case "ru":
                     SetTexts(
@@ -112,11 +112,11 @@ namespace PlatformPuzzle.UI
             _rewardText.text = reward;
             _nextLevelText.text = nextLevel;
 
-            foreach (TMP_Text txt in _restartTexts)
+            foreach (TMP_Text text in _restartTexts)
             {
-                if (txt != null)
+                if (text != null)
                 {
-                    txt.text = restart;
+                    text.text = restart;
                 }
             }
         }

@@ -1,3 +1,5 @@
+using System;
+
 using UnityEngine;
 
 namespace PlatformPuzzle.Levels
@@ -6,37 +8,35 @@ namespace PlatformPuzzle.Levels
     {
         [SerializeField] private GameState _currentState = GameState.MainMenu;
 
-        public GameState CurrentState => _currentState;
+        public event Action<GameState, GameState> StateChanged;
 
-        public bool IsMainMenu => _currentState == GameState.MainMenu;
         public bool IsPlaying => _currentState == GameState.Playing;
         public bool IsPaused => _currentState == GameState.Paused;
         public bool IsWin => _currentState == GameState.Win;
         public bool IsLose => _currentState == GameState.Lose;
 
-        public void SetMainMenu()
+        public bool TryChangeState(GameState newState)
         {
-            _currentState = GameState.MainMenu;
-        }
+            if (_currentState == newState)
+            {
+                return true;
+            }
 
-        public void SetPlaying()
-        {
-            _currentState = GameState.Playing;
-        }
+            if (!CanChangeState(_currentState, newState))
+            {
+                Debug.LogWarning(
+                    $"Invalid game state transition: {_currentState} -> {newState}"
+                );
 
-        public void SetPaused()
-        {
-            _currentState = GameState.Paused;
-        }
+                return false;
+            }
 
-        public void SetWin()
-        {
-            _currentState = GameState.Win;
-        }
+            GameState previousState = _currentState;
+            _currentState = newState;
 
-        public void SetLose()
-        {
-            _currentState = GameState.Lose;
+            StateChanged?.Invoke(previousState, newState);
+
+            return true;
         }
 
         public bool CanPause()
@@ -48,6 +48,38 @@ namespace PlatformPuzzle.Levels
         public bool CanCheckWin()
         {
             return _currentState == GameState.Playing;
+        }
+
+        private bool CanChangeState(
+            GameState currentState,
+            GameState newState)
+        {
+            switch (currentState)
+            {
+                case GameState.MainMenu:
+                    return newState == GameState.Playing;
+
+                case GameState.Playing:
+                    return newState == GameState.Paused ||
+                           newState == GameState.Win ||
+                           newState == GameState.Lose ||
+                           newState == GameState.MainMenu;
+
+                case GameState.Paused:
+                    return newState == GameState.Playing ||
+                           newState == GameState.MainMenu;
+
+                case GameState.Win:
+                    return newState == GameState.Playing ||
+                           newState == GameState.MainMenu;
+
+                case GameState.Lose:
+                    return newState == GameState.Playing ||
+                           newState == GameState.MainMenu;
+
+                default:
+                    return false;
+            }
         }
     }
 }

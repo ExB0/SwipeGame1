@@ -1,6 +1,7 @@
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
+using InterFaces;
 using Units;
 
 namespace GameStrategies
@@ -9,12 +10,13 @@ namespace GameStrategies
     {
         public bool TryTake(Car car, Person person)
         {
-            if (car == null || person == null)
+            if (car == null ||
+                person == null)
             {
                 return false;
             }
 
-            if (car.GetColor() != person.GetColor())
+            if (!HasSameColor(car, person))
             {
                 return false;
             }
@@ -24,9 +26,25 @@ namespace GameStrategies
                 return false;
             }
 
-            person.JumpTo(seatTransform.position, seatTransform).Forget();
+            person.JumpTo(
+                seatTransform.position,
+                seatTransform
+            ).Forget();
 
             return true;
+        }
+
+        private bool HasSameColor(
+            IColorMatchable first,
+            IColorMatchable second)
+        {
+            if (first == null ||
+                second == null)
+            {
+                return false;
+            }
+
+            return first.GetColor() == second.GetColor();
         }
     }
 }

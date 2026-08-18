@@ -1,7 +1,7 @@
 using UnityEngine;
 
-using Units;
 using InterFaces;
+using Units;
 
 namespace Grid
 {
@@ -23,6 +23,10 @@ namespace Grid
         public bool IsObstacle => _isObstacle;
         public Car CurrentCar => _currentCar;
 
+        private void Awake()
+        {
+        }
+
         public void Initialize(Vector2Int gridPos)
         {
             GridPosition = gridPos;
@@ -40,13 +44,16 @@ namespace Grid
 
         public bool TrySetCar(Car car)
         {
-            if (car == null || HasCar)
+            if (car == null ||
+                HasCar)
             {
                 return false;
             }
 
             _currentCar = car;
-            car.transform.position = transform.position + Vector3.down * _carYOffset;
+            car.transform.position =
+                transform.position + Vector3.down * _carYOffset;
+
             car.transform.SetParent(transform);
 
             return true;
@@ -54,7 +61,8 @@ namespace Grid
 
         public bool TryApplyCar(Car car)
         {
-            if (car == null || IsBlocked)
+            if (car == null ||
+                IsBlocked)
             {
                 return false;
             }
@@ -108,7 +116,7 @@ namespace Grid
 
         public void OnClick()
         {
-            _currentCar?.OnClick();
+            _currentCar?.TryStartMove();
         }
     }
 }

@@ -16,6 +16,9 @@ GameObject:
   - component: {fileID: 3003534046530994190}
   - component: {fileID: 6668382999741345304}
   - component: {fileID: 3431600502621812428}
+  - component: {fileID: 5845396948095034504}
+  - component: {fileID: 2395100110220453630}
+  - component: {fileID: 8922782127499303507}
   m_Layer: 2
   m_Name: RedCar
   m_TagString: Untagged
@@ -85,8 +88,8 @@ MonoBehaviour:
   _passengers:
   - {fileID: 6710217695027038613}
   - {fileID: 77285968756413633}
-  _smoke: {fileID: 3433749564843935693}
-  _engineStartAudio: {fileID: 3431600502621812428}
+  _carAudio: {fileID: 0}
+  _carEffects: {fileID: 0}
 --- !u!54 &2916109766196918217
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -290,6 +293,46 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &5845396948095034504
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1897747958364826379}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 090daacb01f374b2593d26805525241b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _engineStartAudio: {fileID: 3431600502621812428}
+--- !u!114 &2395100110220453630
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1897747958364826379}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd8dac43f128d45e388e075f7982a814, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _car: {fileID: 323030920225094436}
+--- !u!114 &8922782127499303507
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1897747958364826379}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 91ed12f8abd9f4b579f3d703f8ecf3e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _smoke: {fileID: 3433749564843935693}
+  _scaleShakeEffect: {fileID: 3003534046530994190}
 --- !u!1 &3005825327920674557
 GameObject:
   m_ObjectHideFlags: 0

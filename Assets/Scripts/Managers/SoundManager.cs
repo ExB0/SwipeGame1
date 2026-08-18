@@ -10,20 +10,26 @@ namespace PlatformPuzzle.Managers
     {
         private const string VolumeKey = "MusicVolume";
         private const string EnabledKey = "MusicEnabled";
+        private const float MinVolume = 0.0001f;
+        private const float DecibelMultiplier = 20f;
+        private const float MutedDecibels = -80f;
+        private const float UnmutedDecibels = 0f;
+        private const int DefaultMusicIndex = 0;
 
         public static SoundManager Instance;
 
         [Header("Music Sources")]
         [SerializeField] private List<AudioSource> _musicSources;
-
         [SerializeField] private AudioSource _winSound;
         [SerializeField] private AudioSource _loseSound;
         [SerializeField] private AudioMixer _audioMixer;
 
         private AudioSource _currentMusic;
+        private float _currentVolume = 1f;
+        private bool _isSoundEnabled = true;
 
         public event Action<float> VolumeChanged;
-        public event Action<bool> MuteChanged;
+        public event Action<bool> SoundEnabledChanged;
 
         private void Awake()
         {
@@ -43,40 +49,35 @@ namespace PlatformPuzzle.Managers
             bool enabled = PlayerPrefs.GetInt(EnabledKey, 1) == 1;
 
             ApplyVolume(volume);
-            ApplyMute(enabled);
-            PlayMusic(0);
+
+            if (!enabled)
+            {
+                ApplyMute(true);
+            }
+            else
+            {
+                ApplyMute(false);
+            }
+
+            PlayMusic(DefaultMusicIndex);
         }
 
         public void PlayMusic(int index)
         {
-            if (index < 0 || index >= _musicSources.Count)
+            if (_musicSources == null || index < 0 || index >= _musicSources.Count)
             {
-                Debug.LogError(
-                    $"SoundManager: invalid music index {index}"
-                );
-
+                Debug.LogError($"SoundManager: invalid music index {index}");
                 return;
             }
 
             AudioSource target = _musicSources[index];
+            if (target == null) return;
 
-            if (target == null)
-            {
-                return;
-            }
-
-            if (_currentMusic == target)
-            {
-                return;
-            }
+            if (_currentMusic == target) return;
 
             foreach (AudioSource music in _musicSources)
             {
-                if (music == null)
-                {
-                    continue;
-                }
-
+                if (music == null) continue;
                 if (music == target)
                 {
                     music.Play();
@@ -92,35 +93,26 @@ namespace PlatformPuzzle.Managers
         public void PauseMusic()
         {
             if (_currentMusic != null && _currentMusic.isPlaying)
-            {
                 _currentMusic.Pause();
-            }
         }
 
         public void ResumeMusic()
         {
             if (_currentMusic != null)
-            {
                 _currentMusic.UnPause();
-            }
         }
 
         public void SetVolume(float value)
         {
-            if (value < 0f || value > 1f)
-            {
-                Debug.LogWarning(
-                    $"SoundManager: громкость вне диапазона {value}, будет зажата"
-                );
-            }
-
+            value = Mathf.Clamp01(value);
             ApplyVolume(value);
-            PlayerPrefs.SetFloat(VolumeKey, Mathf.Clamp01(value));
+            PlayerPrefs.SetFloat(VolumeKey, value);
         }
 
-        public void SetMusicEnabled(bool value)
+        public void SetSoundEnabled(bool value)
         {
-            ApplyMute(value);
+            _isSoundEnabled = value;
+            ApplyMute(!value);
             PlayerPrefs.SetInt(EnabledKey, value ? 1 : 0);
         }
 
@@ -144,24 +136,24 @@ namespace PlatformPuzzle.Managers
 
             if (float.IsNaN(value) || float.IsInfinity(value))
             {
-                Debug.LogError(
-                    $"SoundManager: некорректное значение громкости {value}"
-                );
-
+                Debug.LogError($"SoundManager: некорректное значение громкости {value}");
                 return;
             }
 
-            value = Mathf.Clamp(value, 0.0001f, 1f);
+            value = Mathf.Clamp(value, MinVolume, 1f);
+            _currentVolume = value;
 
-            float db = Mathf.Log10(value) * 20;
-
-            _audioMixer.SetFloat("MusicVolume", db);
-            _audioMixer.SetFloat("SFXVolume", db);
+            if (_isSoundEnabled)
+            {
+                float db = Mathf.Log10(value) * DecibelMultiplier;
+                _audioMixer.SetFloat("MusicVolume", db);
+                _audioMixer.SetFloat("SFXVolume", db);
+            }
 
             VolumeChanged?.Invoke(value);
         }
 
-        private void ApplyMute(bool value)
+        private void ApplyMute(bool mute)
         {
             if (_audioMixer == null)
             {
@@ -169,24 +161,29 @@ namespace PlatformPuzzle.Managers
                 return;
             }
 
-            float db = value ? 0f : -80f;
+            if (mute)
+            {
+                _audioMixer.SetFloat("MusicVolume", MutedDecibels);
+                _audioMixer.SetFloat("SFXVolume", MutedDecibels);
+                _isSoundEnabled = false;
+            }
+            else
+            {
+                float db = Mathf.Log10(_currentVolume) * DecibelMultiplier;
+                _audioMixer.SetFloat("MusicVolume", db);
+                _audioMixer.SetFloat("SFXVolume", db);
+                _isSoundEnabled = true;
+            }
 
-            _audioMixer.SetFloat("MusicVolume", db);
-            _audioMixer.SetFloat("SFXVolume", db);
-
-            MuteChanged?.Invoke(value);
+            SoundEnabledChanged?.Invoke(_isSoundEnabled);
         }
 
         private void PlayRandomized(AudioSource source)
         {
-            if (source == null)
-            {
-                return;
-            }
+            if (source == null) return;
 
             source.pitch = UnityEngine.Random.Range(0.95f, 1.05f);
             source.volume = UnityEngine.Random.Range(0.9f, 1f);
-
             source.Play();
         }
     }

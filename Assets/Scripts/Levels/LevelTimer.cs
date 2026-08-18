@@ -22,7 +22,7 @@ namespace PlatformPuzzle.Levels
         public bool IsUnlimited => _isUnlimited;
         public float RemainingTime => _remainingTime;
 
-        public void Awake()
+        private void Awake()
         {
             if (_timerText == null)
             {
@@ -48,7 +48,14 @@ namespace PlatformPuzzle.Levels
             HideTimer();
         }
 
-        public void StartTimer(float seconds, CancellationToken levelToken)
+        private void OnDestroy()
+        {
+            StopTimer();
+        }
+
+        public void StartTimer(
+            float seconds,
+            CancellationToken levelToken)
         {
             StopTimer();
 
@@ -135,7 +142,10 @@ namespace PlatformPuzzle.Levels
                         UpdateView();
                     }
 
-                    await UniTask.Yield(PlayerLoopTiming.Update, token);
+                    await UniTask.Yield(
+                        PlayerLoopTiming.Update,
+                        token
+                    );
                 }
 
                 if (!token.IsCancellationRequested && !_isUnlimited)
@@ -174,11 +184,6 @@ namespace PlatformPuzzle.Levels
             int seconds = totalSeconds % 60;
 
             _timerText.text = $"{minutes:00}:{seconds:00}";
-        }
-
-        private void OnDestroy()
-        {
-            StopTimer();
         }
     }
 }

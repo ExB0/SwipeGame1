@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
+using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
-using Cysharp.Threading.Tasks;
 
 using GameStrategies;
 using InterFaces;
@@ -15,18 +15,19 @@ namespace Buildings
 {
     public class Spawner : MonoBehaviour
     {
+        private readonly SemaphoreSlim _queueLock = new(1, 1);
+
         [SerializeField] private Transform _spawnPoint;
         [SerializeField] private UnitQueue _unitQueue;
         [SerializeField] private TextMeshProUGUI _remainingPool;
         [SerializeField] private MonoBehaviour _factorySource;
         [SerializeField] private int _spawnDelayMs = 50;
+        [SerializeField] private LevelConstructor _levelConstructor;
         [SerializeField] private LevelFlowController _flowController;
 
-        private readonly SemaphoreSlim _queueLock = new(1, 1);
-
         private bool _isActive;
-        private LevelConstructor _levelConstructor;
         private IUnitFactory _unitFactory;
+
         private List<PersonSpawnData> _peopleQueueData = new();
         private int _currentPersonIndex;
         private CancellationTokenSource _spawnerCts;
@@ -38,7 +39,7 @@ namespace Buildings
 
             if (_unitFactory == null)
             {
-                Debug.LogError("Spawner: _factorySource does not implement IUnitFactory");
+                Debug.LogError($"{nameof(Spawner)}: FactorySource does not implement IUnitFactory");
             }
 
             _takeValidator = new TakeValidator();
@@ -48,13 +49,49 @@ namespace Buildings
         {
             if (_levelConstructor == null)
             {
-                _levelConstructor = LevelConstructor.Instance;
+                Debug.LogWarning(
+                    $"{nameof(Spawner)}: LevelConstructor was not initialized yet"
+                );
             }
 
             if (_flowController == null)
             {
-                _flowController = FindAnyObjectByType<LevelFlowController>();
+                Debug.LogWarning(
+                    $"{nameof(Spawner)}: LevelFlowController was not initialized yet"
+                );
             }
+        }
+
+        private async void OnTriggerStay(Collider other)
+        {
+            if (!_isActive)
+            {
+                return;
+            }
+
+            Car car = other.GetComponent<Car>();
+
+            if (car == null)
+            {
+                return;
+            }
+
+            CancellationToken token =
+                _spawnerCts?.Token ?? CancellationToken.None;
+
+            try
+            {
+                await TryProcessCar(car, token);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+
+        private void OnDestroy()
+        {
+            CancelToken();
+            _queueLock?.Dispose();
         }
 
         public void Initialize(
@@ -72,6 +109,7 @@ namespace Buildings
                 : new List<PersonSpawnData>();
 
             _currentPersonIndex = 0;
+
             UpdateRemainingText();
         }
 
@@ -90,17 +128,14 @@ namespace Buildings
         public void ClearSpawner()
         {
             CancelToken();
-
             ReleaseSemaphoreSafely();
 
             _isActive = false;
 
-            if (_unitQueue != null)
-            {
-                _unitQueue.ClearAndDestroy();
-            }
+            _unitQueue?.ClearAndDestroy();
 
             _currentPersonIndex = 0;
+
             UpdateRemainingText();
         }
 
@@ -118,6 +153,7 @@ namespace Buildings
             try
             {
                 await _queueLock.WaitAsync(token);
+
                 lockAcquired = true;
             }
             catch (OperationCanceledException)
@@ -156,32 +192,9 @@ namespace Buildings
             }
         }
 
-        private async void OnTriggerStay(Collider other)
-        {
-            if (!_isActive)
-            {
-                return;
-            }
-
-            Car car = other.GetComponent<Car>();
-
-            if (car == null)
-            {
-                return;
-            }
-
-            CancellationToken token = _spawnerCts?.Token ?? CancellationToken.None;
-
-            try
-            {
-                await TryProcessCar(car, token);
-            }
-            catch (OperationCanceledException)
-            {
-            }
-        }
-
-        private async UniTask TryProcessCar(Car car, CancellationToken token)
+        private async UniTask TryProcessCar(
+            Car car,
+            CancellationToken token)
         {
             if (!await _queueLock.WaitAsync(0, token))
             {
@@ -251,7 +264,8 @@ namespace Buildings
                 token
             );
 
-            PersonSpawnData personData = _peopleQueueData[_currentPersonIndex];
+            PersonSpawnData personData =
+                _peopleQueueData[_currentPersonIndex];
 
             GameObject obj = _unitFactory.Create(
                 personData.UnitType,
@@ -267,16 +281,20 @@ namespace Buildings
             await _unitQueue.Enqueue(obj, token);
 
             _currentPersonIndex++;
+
             UpdateRemainingText();
         }
 
         private void UpdateRemainingText()
         {
-            if (_remainingPool != null)
+            if (_remainingPool == null)
             {
-                int remainingCount = GetRemainingCount();
-                _remainingPool.text = remainingCount.ToString();
+                return;
             }
+
+            int remainingCount = GetRemainingCount();
+
+            _remainingPool.text = remainingCount.ToString();
         }
 
         private int GetRemainingCount()
@@ -306,6 +324,7 @@ namespace Buildings
         {
             _spawnerCts?.Cancel();
             _spawnerCts?.Dispose();
+
             _spawnerCts = null;
         }
 
@@ -324,12 +343,6 @@ namespace Buildings
             catch (SemaphoreFullException)
             {
             }
-        }
-
-        private void OnDestroy()
-        {
-            CancelToken();
-            _queueLock?.Dispose();
         }
     }
 }

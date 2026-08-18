@@ -1,3 +1,5 @@
+using System;
+
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using YG;
@@ -14,6 +16,7 @@ namespace PlatformPuzzle.Levels
         [SerializeField] private GameStateController _stateController;
         [SerializeField] private LevelUIController _uiController;
         [SerializeField] private LevelProgressService _progressService;
+        [SerializeField] private GridCarSpawner _gridCarSpawner;
 
         [Header("Managers")]
         [SerializeField] private GridManager _gridManager;
@@ -28,10 +31,7 @@ namespace PlatformPuzzle.Levels
 
         private void Start()
         {
-            if (_adsManager == null)
-            {
-                _adsManager = AdsManager.Instance;
-            }
+            ValidateReferences();
 
             if (_levelTimer != null)
             {
@@ -39,9 +39,18 @@ namespace PlatformPuzzle.Levels
             }
         }
 
+        private void OnDestroy()
+        {
+            if (_levelTimer != null)
+            {
+                _levelTimer.TimeExpired -= OnTimeExpired;
+            }
+        }
+
         public void ShowMenuWindow()
         {
-            if (_stateController == null || !_stateController.CanPause())
+            if (_stateController == null ||
+                !_stateController.CanPause())
             {
                 return;
             }
@@ -50,11 +59,11 @@ namespace PlatformPuzzle.Levels
 
             if (shouldPause)
             {
-                _stateController.SetPaused();
+                _stateController.TryChangeState(GameState.Paused);
             }
             else
             {
-                _stateController.SetPlaying();
+                _stateController.TryChangeState(GameState.Playing);
             }
 
             _uiController?.HideStartText();
@@ -63,105 +72,80 @@ namespace PlatformPuzzle.Levels
 
             _uiController?.ShowPauseMenu(shouldPause);
 
-            if (_levelTimer != null)
+            if (_levelTimer == null)
             {
-                if (shouldPause)
-                {
-                    _levelTimer.HideTimer();
-                }
-                else
-                {
-                    _levelTimer.ShowTimer();
-                }
+                return;
+            }
+
+            if (shouldPause)
+            {
+                _levelTimer.HideTimer();
+            }
+            else
+            {
+                _levelTimer.ShowTimer();
             }
         }
 
         public void LoadNextLevel()
         {
-            if (_levelConstructor == null)
+            if (!HasLevelConstructor())
             {
-                Debug.LogError("LevelFlowController: LevelConstructor is null");
                 return;
             }
 
-            int nextLevelIndex = _levelConstructor.CurrentLevelIndex + 1;
+            int nextLevelIndex =
+                _levelConstructor.CurrentLevelIndex + 1;
 
             if (nextLevelIndex >= _levelConstructor.LevelsCount)
             {
-                Debug.Log("No more levels!");
+                Debug.LogError("No more levels!");
                 return;
             }
 
-            if (_adsManager != null)
-            {
-                _adsManager.RegisterAction(2);
-
-                if (_adsManager.TryShowAd(
-                        () => _levelConstructor.LoadLevelWithTimerReset(nextLevelIndex)))
-                {
-                    return;
-                }
-            }
-
-            _levelConstructor.LoadLevelWithTimerReset(nextLevelIndex);
+            ExecuteWithAd(
+                2,
+                () => _levelConstructor.LoadLevelWithTimerReset(nextLevelIndex)
+            );
         }
 
         public void LoadCurrentLevel()
         {
-            if (_levelConstructor == null)
+            if (!HasLevelConstructor())
             {
-                Debug.LogError("LevelFlowController: LevelConstructor is null");
                 return;
             }
 
-            if (_adsManager != null)
-            {
-                _adsManager.RegisterAction(1);
-
-                if (_adsManager.TryShowAd(
-                        _levelConstructor.RestartCurrentLevelKeepTimer))
-                {
-                    return;
-                }
-            }
-
-            _levelConstructor.RestartCurrentLevelKeepTimer();
+            ExecuteWithAd(
+                1,
+                _levelConstructor.RestartCurrentLevelKeepTimer
+            );
         }
 
         public void RestartAfterLose()
         {
-            if (_levelConstructor == null)
+            if (!HasLevelConstructor())
             {
-                Debug.LogError("LevelFlowController: LevelConstructor is null");
                 return;
             }
 
-            if (_adsManager != null)
-            {
-                _adsManager.RegisterAction(1);
+            int currentLevelIndex =
+                _levelConstructor.CurrentLevelIndex;
 
-                if (_adsManager.TryShowAd(
-                        () => _levelConstructor.LoadLevelWithTimerReset(
-                            _levelConstructor.CurrentLevelIndex)))
-                {
-                    return;
-                }
-            }
-
-            _levelConstructor.LoadLevelWithTimerReset(
-                _levelConstructor.CurrentLevelIndex
+            ExecuteWithAd(
+                1,
+                () => _levelConstructor.LoadLevelWithTimerReset(currentLevelIndex)
             );
         }
 
         public void BackToMainMenu()
         {
-            if (_levelConstructor == null)
+            if (!HasLevelConstructor())
             {
-                Debug.LogError("LevelFlowController: LevelConstructor is null");
                 return;
             }
 
-            _stateController?.SetMainMenu();
+            _stateController?.TryChangeState(GameState.MainMenu);
 
             Time.timeScale = 1f;
 
@@ -173,33 +157,25 @@ namespace PlatformPuzzle.Levels
 
         public void CheckWinCondition()
         {
-            if (_stateController == null || !_stateController.CanCheckWin())
+            if (_stateController == null ||
+                !_stateController.CanCheckWin())
             {
                 return;
             }
 
-            if (_spawners != null)
-            {
-                foreach (Spawner spawner in _spawners)
-                {
-                    if (spawner == null)
-                    {
-                        continue;
-                    }
-
-                    if (!spawner.IsFinished())
-                    {
-                        return;
-                    }
-                }
-            }
-
-            if (_gridManager != null && _gridManager.HasActiveCars())
+            if (!AreSpawnersFinished())
             {
                 return;
             }
 
-            if (_roadManager != null && _roadManager.HasCars())
+            if (_gridCarSpawner != null &&
+                _gridCarSpawner.HasActiveCars())
+            {
+                return;
+            }
+
+            if (_roadManager != null &&
+                _roadManager.HasCars())
             {
                 return;
             }
@@ -209,7 +185,8 @@ namespace PlatformPuzzle.Levels
 
         public void ContinueAfterRewardAd()
         {
-            if (_stateController == null || !_stateController.IsLose)
+            if (_stateController == null ||
+                !_stateController.IsLose)
             {
                 return;
             }
@@ -224,8 +201,6 @@ namespace PlatformPuzzle.Levels
 
         public void ShowWinWindow()
         {
-            _stateController?.SetWin();
-
             _levelTimer?.HideTimer();
 
             _uiController?.ShowWinWindow(_lastLevelReward);
@@ -236,7 +211,7 @@ namespace PlatformPuzzle.Levels
 
         public void OnLevelStarted(int levelIndex)
         {
-            _stateController?.SetPlaying();
+            _stateController?.TryChangeState(GameState.Playing);
 
             _uiController?.ShowGameplay();
             _uiController?.ShowStartTextIfFirstLevel(levelIndex);
@@ -246,53 +221,94 @@ namespace PlatformPuzzle.Levels
             SoundManager.Instance?.ResumeMusic();
         }
 
-        private void HandleWin()
+        private void ExecuteWithAd(
+            int actionWeight,
+            Action action)
         {
-            if (_levelConstructor == null)
+            if (action == null)
             {
-                Debug.LogError("LevelFlowController: LevelConstructor is null");
                 return;
             }
 
-            _stateController?.SetWin();
+            if (_adsManager != null)
+            {
+                _adsManager.RegisterAction(actionWeight);
+
+                if (_adsManager.TryShowAd(action))
+                {
+                    return;
+                }
+            }
+
+            action.Invoke();
+        }
+
+        private bool HasLevelConstructor()
+        {
+            if (_levelConstructor != null)
+            {
+                return true;
+            }
+
+            Debug.LogError(
+                $"{nameof(LevelFlowController)}: LevelConstructor is null"
+            );
+
+            return false;
+        }
+
+        private bool AreSpawnersFinished()
+        {
+            if (_spawners == null)
+            {
+                return true;
+            }
+
+            foreach (Spawner spawner in _spawners)
+            {
+                if (spawner == null)
+                {
+                    continue;
+                }
+
+                if (!spawner.IsFinished())
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private void HandleWin()
+        {
+            if (!HasLevelConstructor())
+            {
+                return;
+            }
+
+            _stateController?.TryChangeState(GameState.Win);
 
             _levelTimer?.StopAndHide();
 
-            LevelData currentLevel = _levelConstructor.CurrentLevelData;
+            LevelData currentLevel =
+                _levelConstructor.CurrentLevelData;
 
             if (_progressService != null)
             {
-                _lastLevelReward = _progressService.CompleteLevel(
-                    currentLevel,
-                    _levelConstructor.CurrentLevelIndex
-                );
+                _lastLevelReward =
+                    _progressService.CompleteLevel(
+                        currentLevel,
+                        _levelConstructor.CurrentLevelIndex
+                    );
             }
 
             ShowWinWindow();
         }
 
-        private void OnTimeExpired()
-        {
-            if (_stateController == null || !_stateController.IsPlaying)
-            {
-                return;
-            }
-
-            _stateController.SetLose();
-
-            _levelTimer?.StopAndHide();
-
-            Time.timeScale = 0f;
-
-            _uiController?.ShowLoseWindow();
-
-            SoundManager.Instance?.PauseMusic();
-            SoundManager.Instance?.PlayLoseSound();
-        }
-
         private async void ApplySecondChance()
         {
-            _stateController?.SetPlaying();
+            _stateController?.TryChangeState(GameState.Playing);
 
             _uiController?.HideLoseWindow();
             _uiController?.ShowGameplayButtons();
@@ -313,12 +329,42 @@ namespace PlatformPuzzle.Levels
             Time.timeScale = isPaused ? 0f : 1f;
         }
 
-        private void OnDestroy()
+        private void ValidateReferences()
         {
-            if (_levelTimer != null)
+            if (_levelConstructor == null)
             {
-                _levelTimer.TimeExpired -= OnTimeExpired;
+                Debug.LogError($"{nameof(LevelFlowController)}: LevelConstructor is missing");
             }
+
+            if (_stateController == null)
+            {
+                Debug.LogError($"{nameof(LevelFlowController)}: GameStateController is missing");
+            }
+
+            if (_adsManager == null)
+            {
+                Debug.LogWarning($"{nameof(LevelFlowController)}: AdsManager is missing");
+            }
+        }
+
+        private void OnTimeExpired()
+        {
+            if (_stateController == null ||
+                !_stateController.IsPlaying)
+            {
+                return;
+            }
+
+            _stateController.TryChangeState(GameState.Lose);
+
+            _levelTimer?.StopAndHide();
+
+            Time.timeScale = 0f;
+
+            _uiController?.ShowLoseWindow();
+
+            SoundManager.Instance?.PauseMusic();
+            SoundManager.Instance?.PlayLoseSound();
         }
     }
 }

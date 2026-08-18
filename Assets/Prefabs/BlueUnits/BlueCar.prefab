@@ -4846,6 +4846,9 @@ GameObject:
   - component: {fileID: -4298024720280582149}
   - component: {fileID: 5178210596686624949}
   - component: {fileID: 3294645241153013272}
+  - component: {fileID: -7743851090536115823}
+  - component: {fileID: 1541321468687689953}
+  - component: {fileID: 3839421437074337197}
   m_Layer: 2
   m_Name: BlueCar
   m_TagString: Untagged
@@ -4915,9 +4918,8 @@ MonoBehaviour:
   _passengers:
   - {fileID: 7218766081545535102}
   - {fileID: 2694729338159120284}
-  _smoke: {fileID: 7719930492480154097}
-  _engineStartAudio: {fileID: 3294645241153013272}
-  _availableMarker: {fileID: 0}
+  _carAudio: {fileID: 0}
+  _carEffects: {fileID: 0}
 --- !u!54 &7372765262799798033
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -5121,6 +5123,46 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &-7743851090536115823
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4291078947906726376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 090daacb01f374b2593d26805525241b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _engineStartAudio: {fileID: 3294645241153013272}
+--- !u!114 &1541321468687689953
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4291078947906726376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd8dac43f128d45e388e075f7982a814, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _car: {fileID: 5251368458765915960}
+--- !u!114 &3839421437074337197
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4291078947906726376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 91ed12f8abd9f4b579f3d703f8ecf3e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _smoke: {fileID: 7719930492480154097}
+  _scaleShakeEffect: {fileID: -4298024720280582149}
 --- !u!1 &8786635852557918320
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,6 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
-
 using UnityEngine;
 
 using InterFaces;
@@ -14,7 +11,8 @@ namespace Controller
 
         private void Update()
         {
-            if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
+            if (Input.touchCount > 0 &&
+                Input.GetTouch(0).phase == TouchPhase.Began)
             {
                 HandleClick(Input.GetTouch(0).position);
                 return;
@@ -36,9 +34,15 @@ namespace Controller
 
             Ray ray = _camera.ScreenPointToRay(screenPosition);
 
-            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, _interactableLayers))
+            if (Physics.Raycast(
+                    ray,
+                    out RaycastHit hit,
+                    Mathf.Infinity,
+                    _interactableLayers))
             {
-                var clickable = hit.collider.GetComponent<IClickable>();
+                IClickable clickable =
+                    hit.collider.GetComponentInParent<IClickable>();
+
                 clickable?.OnClick();
             }
         }

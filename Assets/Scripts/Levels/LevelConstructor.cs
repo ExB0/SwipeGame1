@@ -2,21 +2,21 @@ using System.Threading;
 
 using UnityEngine;
 
-using PlatformPuzzle.Managers;
 using Buildings;
 using Grid;
+using PlatformPuzzle.Managers;
 
 namespace PlatformPuzzle.Levels
 {
     public class LevelConstructor : MonoBehaviour
     {
-        public static LevelConstructor Instance { get; private set; }
-
         [Header("Level")]
         [SerializeField] private Spawner[] _spawners;
         [SerializeField] private LevelData[] _levels;
         [SerializeField] private GridManager _gridManager;
         [SerializeField] private RoadManager _roadManager;
+        [SerializeField] private GridCarSpawner _gridCarSpawner;
+        [SerializeField] private GridObstacleBuilder _obstacleBuilder;
 
         [Header("Controllers")]
         [SerializeField] private LevelSession _levelSession;
@@ -29,8 +29,7 @@ namespace PlatformPuzzle.Levels
 
         public int CurrentLevelIndex => _currentLevelIndex;
 
-        public int LevelsCount =>
-            _levels != null ? _levels.Length : 0;
+        public int LevelsCount => _levels != null ? _levels.Length : 0;
 
         public LevelData CurrentLevelData
         {
@@ -54,18 +53,19 @@ namespace PlatformPuzzle.Levels
 
         private void Awake()
         {
-            if (Instance != null && Instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
+            ValidateReferences();
+        }
 
-            Instance = this;
+        private void OnDestroy()
+        {
+            CancelCurrentLevel();
         }
 
         public void LoadLevel(int levelIndex)
         {
-            if (!TryGetLevelData(levelIndex, out LevelData levelData))
+            if (!TryGetLevelData(
+                    levelIndex,
+                    out LevelData levelData))
             {
                 return;
             }
@@ -81,10 +81,7 @@ namespace PlatformPuzzle.Levels
             ApplyGridSettings();
             SpawnCars(levelData);
 
-            if (_gridManager != null)
-            {
-                _gridManager.BuildObstacles();
-            }
+            _obstacleBuilder?.BuildObstacles();
 
             ApplySpawners(levelData);
 
@@ -93,18 +90,15 @@ namespace PlatformPuzzle.Levels
 
         public void LoadLevelWithTimerReset(int levelIndex)
         {
-            if (!TryGetLevelData(levelIndex, out LevelData levelData))
+            if (!TryGetLevelData(
+                    levelIndex,
+                    out LevelData levelData))
             {
                 return;
             }
 
             LoadLevel(levelIndex);
             StartLevelTimer(levelData);
-        }
-
-        public void LoadCurrentLevelWithTimerReset()
-        {
-            LoadLevelWithTimerReset(_currentLevelIndex);
         }
 
         public void RestartCurrentLevelKeepTimer()
@@ -144,15 +138,10 @@ namespace PlatformPuzzle.Levels
 
         public void ClearLevel()
         {
-            if (_gridManager != null)
-            {
-                _gridManager.ClearGrid();
-            }
-
-            if (_roadManager != null)
-            {
-                _roadManager.ClearCars();
-            }
+            _obstacleBuilder?.ClearObstacles();
+            _gridManager?.ClearCells();
+            _gridCarSpawner?.ClearCars();
+            _roadManager?.ClearCars();
 
             if (_spawners == null)
             {
@@ -161,42 +150,34 @@ namespace PlatformPuzzle.Levels
 
             foreach (Spawner spawner in _spawners)
             {
-                if (spawner == null)
-                {
-                    continue;
-                }
-
-                spawner.ClearSpawner();
+                spawner?.ClearSpawner();
             }
         }
 
         public void CancelCurrentLevel()
         {
-            if (_levelSession != null)
-            {
-                _levelSession.Cancel();
-            }
+            _levelSession?.Cancel();
         }
 
         private void CreateLevelSession()
         {
-            if (_levelSession != null)
-            {
-                _levelSession.Create();
-            }
+            _levelSession?.Create();
         }
 
         private void SpawnCars(LevelData level)
         {
-            if (_gridManager == null)
+            if (_gridCarSpawner == null)
             {
-                Debug.LogError("LevelConstructor: GridManager is null");
+                Debug.LogError(
+                    $"{nameof(LevelConstructor)}: GridCarSpawner is null"
+                );
+
                 return;
             }
 
             foreach (CarSpawnData carData in level.Cars)
             {
-                _gridManager.SpawnCarAt(
+                _gridCarSpawner.SpawnCarAt(
                     carData.GridPosition,
                     carData.UnitType,
                     carData.Color
@@ -217,7 +198,9 @@ namespace PlatformPuzzle.Levels
             }
         }
 
-        private void ApplySpawner(LevelData level, int spawnerIndex)
+        private void ApplySpawner(
+            LevelData level,
+            int spawnerIndex)
         {
             if (spawnerIndex < 0 ||
                 _spawners == null ||
@@ -242,7 +225,10 @@ namespace PlatformPuzzle.Levels
                 return;
             }
 
-            spawner.Initialize(this, _flowController);
+            spawner.Initialize(
+                this,
+                _flowController
+            );
 
             spawner.SetPeopleQueue(
                 level.Spawners[spawnerIndex].People
@@ -253,13 +239,12 @@ namespace PlatformPuzzle.Levels
 
         private void ApplyGridSettings()
         {
-            if (_gridManager != null)
-            {
-                _gridManager.RebuildGrid();
-            }
+            _gridManager?.RebuildGrid();
         }
 
-        private bool TryGetLevelData(int levelIndex, out LevelData levelData)
+        private bool TryGetLevelData(
+            int levelIndex,
+            out LevelData levelData)
         {
             levelData = null;
 
@@ -348,6 +333,24 @@ namespace PlatformPuzzle.Levels
             return true;
         }
 
+        private void ValidateReferences()
+        {
+            if (_gridManager == null)
+            {
+                Debug.LogError($"{nameof(LevelConstructor)}: GridManager is missing");
+            }
+
+            if (_roadManager == null)
+            {
+                Debug.LogError($"{nameof(LevelConstructor)}: RoadManager is missing");
+            }
+
+            if (_flowController == null)
+            {
+                Debug.LogError($"{nameof(LevelConstructor)}: LevelFlowController is missing");
+            }
+        }
+
         private void StartLevelTimer(LevelData levelData)
         {
             if (_levelTimer == null)
@@ -359,11 +362,6 @@ namespace PlatformPuzzle.Levels
                 levelData.TimeLimitSeconds,
                 LevelToken
             );
-        }
-
-        private void OnDestroy()
-        {
-            CancelCurrentLevel();
         }
     }
 }

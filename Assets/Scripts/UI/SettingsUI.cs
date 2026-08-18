@@ -9,7 +9,7 @@ namespace PlatformPuzzle.UI
 
         private bool _isButtonPressed = false;
 
-        public void ShowSetings()
+        public void ShowSettings()
         {
             _isButtonPressed = !_isButtonPressed;
 
