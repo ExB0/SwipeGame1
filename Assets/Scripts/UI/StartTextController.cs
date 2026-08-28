@@ -32,6 +32,12 @@ namespace PlatformPuzzle.UI
 
         public void HideText()
         {
+            if (_startTextObject == null)
+            {
+                Debug.LogError("StartTextController: startTextObject не назначен!");
+                return;
+            }
+            
             _startTextObject.SetActive(false);
         }
     }

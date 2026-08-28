@@ -23,23 +23,9 @@ namespace Grid
         public bool IsObstacle => _isObstacle;
         public Car CurrentCar => _currentCar;
 
-        private void Awake()
+        public void Initialize(Vector2Int gridPosition)
         {
-        }
-
-        public void Initialize(Vector2Int gridPos)
-        {
-            GridPosition = gridPos;
-        }
-
-        public void Reserve()
-        {
-            IsReserved = true;
-        }
-
-        public void Unreserve()
-        {
-            IsReserved = false;
+            GridPosition = gridPosition;
         }
 
         public bool TrySetCar(Car car)
@@ -116,7 +102,7 @@ namespace Grid
 
         public void OnClick()
         {
-            _currentCar?.TryStartMove();
+            _currentCar?.StartMove();
         }
     }
 }

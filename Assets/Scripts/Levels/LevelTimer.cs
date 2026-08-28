@@ -9,6 +9,12 @@ namespace PlatformPuzzle.Levels
 {
     public class LevelTimer : MonoBehaviour
     {
+        private const float MinTimerSeconds = 1f;
+        private const float MaxTimerSeconds = 300f;
+        private const int SecondsPerMinute = 60;
+        private const float ZeroTime = 0f;
+        private const string UnlimitedSymbol = "∞";
+        
         [SerializeField] private TextMeshProUGUI _timerText;
         [SerializeField] private GameObject _timer;
 
@@ -59,7 +65,7 @@ namespace PlatformPuzzle.Levels
         {
             StopTimer();
 
-            _remainingTime = Mathf.Clamp(seconds, 1f, 300f);
+            _remainingTime = Mathf.Clamp(seconds, MinTimerSeconds, MaxTimerSeconds);
             _isRunning = true;
             _isUnlimited = false;
 
@@ -81,21 +87,11 @@ namespace PlatformPuzzle.Levels
             _timerCts = null;
         }
 
-        public void ResetTimer()
-        {
-            StopTimer();
-
-            _remainingTime = 0f;
-            _isUnlimited = false;
-
-            UpdateView();
-        }
-
         public void DisableLimit()
         {
             StopTimer();
 
-            _remainingTime = 0f;
+            _remainingTime = ZeroTime;
             _isUnlimited = true;
 
             UpdateView();
@@ -151,7 +147,7 @@ namespace PlatformPuzzle.Levels
                 if (!token.IsCancellationRequested && !_isUnlimited)
                 {
                     _isRunning = false;
-                    _remainingTime = 0f;
+                    _remainingTime = ZeroTime;
 
                     UpdateView();
 
@@ -172,7 +168,7 @@ namespace PlatformPuzzle.Levels
 
             if (_isUnlimited)
             {
-                _timerText.text = "∞";
+                _timerText.text = UnlimitedSymbol;
                 return;
             }
 
@@ -180,8 +176,8 @@ namespace PlatformPuzzle.Levels
                 Mathf.Max(0f, _remainingTime)
             );
 
-            int minutes = totalSeconds / 60;
-            int seconds = totalSeconds % 60;
+            int minutes = totalSeconds / SecondsPerMinute;
+            int seconds = totalSeconds % SecondsPerMinute;
 
             _timerText.text = $"{minutes:00}:{seconds:00}";
         }

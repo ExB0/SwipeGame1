@@ -19,7 +19,7 @@ namespace Units
 
         public void OnClick()
         {
-            _car?.TryStartMove();
+            _car?.StartMove();
         }
     }
 }

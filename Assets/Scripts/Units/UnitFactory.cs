@@ -27,7 +27,8 @@ namespace Units
             {
                 if (entry.Prefab == null)
                 {
-                    Debug.LogWarning($"UnitFactory: prefab for {entry.UnitType} with color {entry.UnitColor} is null, skipping");
+                    Debug.LogWarning($"UnitFactory: prefab for {entry.UnitType} with color" +
+                                     $"{entry.UnitColor} is null, skipping");
                     continue;
                 }
 

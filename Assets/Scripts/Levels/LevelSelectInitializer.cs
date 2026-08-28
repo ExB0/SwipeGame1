@@ -9,11 +9,24 @@ namespace PlatformPuzzle.Levels
 
         private void OnEnable()
         {
-            var data = SaveSystem.Load();
-
-            foreach (var button in _buttons)
+            if (_buttons == null || _buttons.Length == 0)
             {
-                button.Initialize(data.UnlockedLevel);
+                Debug.LogWarning($"{name}: No buttons assigned");
+                return;
+            }
+
+            var data = SaveSystem.Load();
+            int unlockedLevel = data != null ? data.UnlockedLevel : 0;
+
+            for (int i = 0; i < _buttons.Length; i++)
+            {
+                var button = _buttons[i];
+                if (button == null)
+                {
+                    Debug.LogWarning($"{name}: Button at index {i} is null");
+                    continue;
+                }
+                button.Initialize(unlockedLevel);
             }
         }
     }

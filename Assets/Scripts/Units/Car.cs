@@ -129,7 +129,7 @@ namespace Units
             _carEffects?.StopSmoke();
         }
 
-        public void TryStartMove()
+        public void StartMove()
         {
             if (_gridManager == null ||
                 _roadManager == null)
@@ -402,6 +402,12 @@ namespace Units
 
         private Cell GetCurrentCell()
         {
+            if (_gridManager == null)
+            {
+                Debug.LogError($"{name}: GridManager is null in GetCurrentCell");
+                return null;
+            }
+            
             float minDistance = float.MaxValue;
             Cell closestCell = null;
 

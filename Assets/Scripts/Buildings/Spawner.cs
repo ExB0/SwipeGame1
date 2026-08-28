@@ -115,7 +115,7 @@ namespace Buildings
 
         public void ResetSpawner()
         {
-            CancelToken();
+            CancelToken();;
             CreateToken();
 
             ReleaseSemaphoreSafely();

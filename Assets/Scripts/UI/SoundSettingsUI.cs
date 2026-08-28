@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-
 using PlatformPuzzle.Managers;
 
 namespace PlatformPuzzle.UI
@@ -12,13 +11,19 @@ namespace PlatformPuzzle.UI
 
         private void OnEnable()
         {
+            if (_slider == null || _toggle == null)
+            {
+                Debug.LogError($"{name}: Slider or Toggle is null");
+                return;
+            }
+
             _slider.onValueChanged.AddListener(OnSliderValueChanged);
             _toggle.onValueChanged.AddListener(OnToggleValueChanged);
 
             if (SoundManager.Instance != null)
             {
                 SoundManager.Instance.VolumeChanged += OnVolumeChanged;
-                SoundManager.Instance.SoundEnabledChanged += OnMuteChanged;
+                SoundManager.Instance.SoundEnabledChanged += OnSoundEnabledChanged;
             }
 
             UpdateUI();
@@ -26,13 +31,18 @@ namespace PlatformPuzzle.UI
 
         private void OnDisable()
         {
+            if (_slider == null || _toggle == null)
+            {
+                return;
+            }
+
             _slider.onValueChanged.RemoveListener(OnSliderValueChanged);
             _toggle.onValueChanged.RemoveListener(OnToggleValueChanged);
 
             if (SoundManager.Instance != null)
             {
                 SoundManager.Instance.VolumeChanged -= OnVolumeChanged;
-                SoundManager.Instance.SoundEnabledChanged -= OnMuteChanged;
+                SoundManager.Instance.SoundEnabledChanged -= OnSoundEnabledChanged;
             }
         }
 
@@ -48,23 +58,29 @@ namespace PlatformPuzzle.UI
 
         private void OnVolumeChanged(float value)
         {
-            _slider.SetValueWithoutNotify(value);
+            if (_slider != null)
+            {
+                _slider.SetValueWithoutNotify(value);
+            }
         }
 
-        private void OnMuteChanged(bool isMuted)
+        private void OnSoundEnabledChanged(bool isEnabled)
         {
-            _toggle.SetIsOnWithoutNotify(isMuted);
+            if (_toggle != null)
+            {
+                _toggle.SetIsOnWithoutNotify(isEnabled);
+            }
         }
 
         private void UpdateUI()
         {
-            if (SoundManager.Instance == null)
+            if (_slider == null || _toggle == null || SoundManager.Instance == null)
             {
                 return;
             }
-
-            float volume = PlayerPrefs.GetFloat("MusicVolume", 1f);
-            bool enabled = PlayerPrefs.GetInt("MusicEnabled", 1) == 1;
+            
+            float volume = SoundManager.Instance.CurrentVolume;
+            bool enabled = SoundManager.Instance.IsSoundEnabled;
 
             _slider.SetValueWithoutNotify(volume);
             _toggle.SetIsOnWithoutNotify(enabled);

@@ -17,16 +17,17 @@ namespace Units
         [SerializeField] private float _jumpArcMultiplier = 4f;
         [SerializeField] private float _fullProgress = 1f;
         [SerializeField] private int _hideAfterJumpDelay = 30;
+        
         [SerializeField] private Color _color;
+        
         [SerializeField] private Animator _animator;
         [SerializeField] private float _animatorSpeed;
+        
         [SerializeField] private AudioSource _pickupSound;
 
         private CancellationTokenSource _cancellationTokenSource;
 
         public bool IsJumped { get; private set; }
-
-        public Color GetColor() => _color;
 
         private void Awake()
         {
@@ -61,6 +62,8 @@ namespace Units
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource?.Dispose();
         }
+        
+        public Color GetColor() => _color;
 
         public async UniTask JumpTo(
             Vector3 target,

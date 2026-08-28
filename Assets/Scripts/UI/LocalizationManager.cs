@@ -27,11 +27,6 @@ namespace PlatformPuzzle.UI
             YG2.onSwitchLang += OnUpdateLanguage;
         }
 
-        private void OnDisable()
-        {
-            YG2.onSwitchLang -= OnUpdateLanguage;
-        }
-
         private void Start()
         {
             if (!string.IsNullOrEmpty(YG2.lang))
@@ -40,56 +35,36 @@ namespace PlatformPuzzle.UI
             }
         }
 
-        private void OnUpdateLanguage(string language)
+        private void OnDisable()
         {
-            if (!Validate())
-            {
-                return;
-            }
+            YG2.onSwitchLang -= OnUpdateLanguage;
+        }
 
-            switch (language)
-            {
-                case "ru":
-                    SetTexts(
-                        "Нажмите на машину чтобы она двигалась",
-                        "Настройки",
-                        "Выберите уровень",
-                        "Меню",
-                        "Победа",
-                        "Время истекло",
-                        "Посмотрите рекламу, чтобы продолжить",
-                        "Следующий уровень",
-                        "Заново");
-                    break;
-
-                case "tr":
-                    SetTexts(
-                        "Arabayı hareket ettirmek için dokunun",
-                        "Ayarlar",
-                        "Bir seviye seçin",
-                        "Menü",
-                        "Galibiyet",
-                        "Süre bitti",
-                        "Devam etmek için reklamı izleyin",
-                        "Sonraki seviye",
-                        "Yeniden");
-                    break;
-
-                default:
-                    SetTexts(
-                        "Tap a car to move",
-                        "Settings",
-                        "Select a level",
-                        "Menu",
-                        "Victory",
-                        "Time is over",
-                        "Watch the AD to continue",
-                        "Next Level",
-                        "Again");
-                    break;
-            }
-
+        public void SetScoreReward(int reward)
+        {
+            _lastScoreReward = reward;
             UpdateScoreRewardText();
+        }
+
+        public void SetRU()
+        {
+            if (YG2.lang == "ru")
+                return;
+            YG2.SwitchLanguage("ru");
+        }
+
+        public void SetEN()
+        {
+            if (YG2.lang == "en")
+                return;
+            YG2.SwitchLanguage("en");
+        }
+
+        public void SetTR()
+        {
+            if (YG2.lang == "tr")
+                return;
+            YG2.SwitchLanguage("tr");
         }
 
         private void SetTexts(
@@ -115,35 +90,23 @@ namespace PlatformPuzzle.UI
             foreach (TMP_Text text in _restartTexts)
             {
                 if (text != null)
-                {
                     text.text = restart;
-                }
             }
-        }
-
-        public void SetScoreReward(int reward)
-        {
-            _lastScoreReward = reward;
-            UpdateScoreRewardText();
         }
 
         private void UpdateScoreRewardText()
         {
             if (_scoreRewardText == null)
-            {
                 return;
-            }
 
             switch (YG2.lang)
             {
                 case "ru":
                     _scoreRewardText.text = $"Набрано очков:+{_lastScoreReward}";
                     break;
-
                 case "tr":
                     _scoreRewardText.text = $"Kazanılan puan:+{_lastScoreReward}";
                     break;
-
                 default:
                     _scoreRewardText.text = $"Scored points:+{_lastScoreReward}";
                     break;
@@ -167,38 +130,55 @@ namespace PlatformPuzzle.UI
                 Debug.LogError("LocalizationManager: не все TMP_Text назначены!");
                 return false;
             }
-
             return true;
         }
 
-        public void SetRU()
+        private void OnUpdateLanguage(string language)
         {
-            if (YG2.lang == "ru")
-            {
+            if (!Validate())
                 return;
+
+            switch (language)
+            {
+                case "ru":
+                    SetTexts(
+                        "Нажмите на машину чтобы она двигалась",
+                        "Настройки",
+                        "Выберите уровень",
+                        "Меню",
+                        "Победа",
+                        "Время истекло",
+                        "Посмотрите рекламу, чтобы продолжить",
+                        "Следующий уровень",
+                        "Заново");
+                    break;
+                case "tr":
+                    SetTexts(
+                        "Arabayı hareket ettirmek için dokunun",
+                        "Ayarlar",
+                        "Bir seviye seçin",
+                        "Menü",
+                        "Galibiyet",
+                        "Süre bitti",
+                        "Devam etmek için reklamı izleyin",
+                        "Sonraki seviye",
+                        "Yeniden");
+                    break;
+                default:
+                    SetTexts(
+                        "Tap a car to move",
+                        "Settings",
+                        "Select a level",
+                        "Menu",
+                        "Victory",
+                        "Time is over",
+                        "Watch the AD to continue",
+                        "Next Level",
+                        "Again");
+                    break;
             }
 
-            YG2.SwitchLanguage("ru");
-        }
-
-        public void SetEN()
-        {
-            if (YG2.lang == "en")
-            {
-                return;
-            }
-
-            YG2.SwitchLanguage("en");
-        }
-
-        public void SetTR()
-        {
-            if (YG2.lang == "tr")
-            {
-                return;
-            }
-
-            YG2.SwitchLanguage("tr");
+            UpdateScoreRewardText();
         }
     }
 }
