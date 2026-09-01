@@ -7,8 +7,8 @@ namespace PlatformPuzzle.Managers
     public class SoundManager : MonoBehaviour
     {
         private const int DefaultMusicIndex = 0;
-
-        public static SoundManager Instance;
+        
+        public static SoundManager Instance { get; private set; }
 
         [Header("Services")]
         [SerializeField] private AudioSettingsManager _audioSettings;

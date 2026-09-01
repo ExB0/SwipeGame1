@@ -56,6 +56,14 @@ namespace Units
                 return;
             }
 
+            int targetIndex = _queue.Count;
+            if (targetIndex < 0 || targetIndex >= _queuePositions.Length || _queuePositions[targetIndex] == null)
+            {
+                Debug.LogError($"{name}: invalid position at index {targetIndex}");
+                Destroy(unitObject);
+                return;
+            }
+
             unitObject.SetActive(true);
 
             IQueueable queueable = unitObject.GetComponent<IQueueable>();
@@ -67,15 +75,6 @@ namespace Units
             }
 
             _queue.Enqueue(queueable);
-
-            int targetIndex = _queue.Count - 1;
-            if (targetIndex < 0 || targetIndex >= _queuePositions.Length || _queuePositions[targetIndex] == null)
-            {
-                Debug.LogError($"{name}: invalid position at index {targetIndex}");
-                Destroy(unitObject);
-                return;
-            }
-
             await queueable.MoveToPosition(_queuePositions[targetIndex].position, _moveSpeed, token);
         }
 

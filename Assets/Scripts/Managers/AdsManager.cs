@@ -11,8 +11,8 @@ namespace PlatformPuzzle.Managers
     {
         private const int ActionThreshold = 3;
         private const float Cooldown = 60f;
-
-        public static AdsManager Instance;
+        
+        public static AdsManager Instance { get; private set; }
 
         [SerializeField] private int _actionCounter;
         [SerializeField] private float _lastAdTime = -999f;
